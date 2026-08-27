@@ -28,7 +28,7 @@ shuorenhua-build-pairs = "shuorenhua_bench.pairing:main"
 packages = ["src/shuorenhua_bench"]
 
 [tool.vercel]
-entrypoint = "api/index.py"
+entrypoint = "api.index:app"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
