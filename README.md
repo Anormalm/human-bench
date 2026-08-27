@@ -33,6 +33,10 @@ python scripts/evaluate.py \
 pytest
 ```
 
+## Vercel deployment
+
+Vercel loads `api/index.py` through the explicit `[tool.vercel]` entrypoint. The deployment exposes `/` and `/health`; benchmark generation and evaluation remain available through the Python package and CLI.
+
 JSONL records are validated against the Pydantic models in `schemas.py`. See `configs/benchmark_v0.1.yaml` and `annotation/guidelines.md` before collecting data.
 
 ## Main outputs
@@ -53,4 +57,3 @@ The repository contains schemas and small examples only. Do not commit personall
 ## Development status
 
 This is an experimental V0.1 implementation. The Davidson model, bootstrap confidence intervals, validation, pairing, and deterministic diagnostics are usable; mixed-effects estimation is exposed as an optional `statsmodels` backend. A learned preference evaluator is intentionally deferred until sufficient human comparison data exists.
-

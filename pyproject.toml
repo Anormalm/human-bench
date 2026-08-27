@@ -27,10 +27,12 @@ shuorenhua-build-pairs = "shuorenhua_bench.pairing:main"
 [tool.hatch.build.targets.wheel]
 packages = ["src/shuorenhua_bench"]
 
+[tool.vercel]
+entrypoint = "api/index.py"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-
