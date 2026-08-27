@@ -1,0 +1,3 @@
+{"provenance":"human","response_id":"zh-work-001-human","scenario_id":"zh-work-001","system_id":"human-reference","text":"抱歉，实验还没跑完，两张结果图周五发不了了。我周末补完，周一下午发你，可以吗？","track":"native_generation"}
+{"manifest":{"model":"example-model","provider":"example","temperature":0.0},"provenance":"raw_model","response_id":"zh-work-001-model","scenario_id":"zh-work-001","system_id":"example-model","text":"非常抱歉给你带来不便。由于实验尚未完成，我无法按原计划于周五提供两张结果图。我计划在周末完成相关工作，并于周一下午发送。感谢理解。","track":"native_generation"}
+

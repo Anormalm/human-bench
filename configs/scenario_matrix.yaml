@@ -1,0 +1,14 @@
+version: "0.1"
+languages: [zh-CN]
+genres: [private_message, group_message, workplace_message, customer_service, technical_explanation, social_post, opinion, creative]
+relationships: [friend, colleague, manager, stranger]
+intents: [explain, refuse, request, respond]
+task_types: [contextual_completion, outline_guided, open_ended]
+channels: [wechat_private, wechat_group, email, forum]
+sampling:
+  strategy: stratified
+  target_scenarios: 200
+  minimum_per_relationship_intent_cell: 8
+  semantic_deduplication: required
+  grouped_split_keys: [semantic_cluster_id, source_template_id, author_id]
+

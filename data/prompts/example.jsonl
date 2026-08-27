@@ -1,0 +1,2 @@
+{"channel":"wechat_private","context":"你答应周五把两张结果图发给同事，但实验还没跑完。","genre":"workplace_message","instruction":"向同事解释延期，并提出新的明确时间。","intent":"explain","language":"zh-CN","prohibited_changes":["不要声称实验已经完成"],"relationship":"colleague","required_facts":["两张结果图","周一下午"],"scenario_id":"zh-work-001","task_type":"contextual_completion"}
+

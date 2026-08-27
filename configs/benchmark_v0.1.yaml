@@ -1,0 +1,27 @@
+benchmark_id: chinese-messaging-pilot-v0.1
+seed: 20260827
+tracks: [native_generation, humanization]
+responses_per_scenario:
+  human_minimum: 1
+  system_target: 3
+pairing:
+  strategy: balanced_round_robin
+  judgments_per_pair: 3
+  allow_same_system: false
+  counterbalance_positions: true
+annotation:
+  preference_labels: [A, tie, B]
+  action_labels: [send, revise, reject]
+  confidence_range: [1, 5]
+reporting:
+  primary_model: davidson_bradley_terry
+  confidence_interval: prompt_clustered_bootstrap
+  bootstrap_samples: 1000
+  mandatory_overall_score: false
+  subgroup_fields: [age_group, professional_background, language_background]
+diagnostics:
+  repetition: true
+  excess_ngrams: true
+  semantic_preservation: true
+  register_distance: true
+

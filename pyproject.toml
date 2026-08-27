@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "shuorenhua-bench"
+version = "0.1.0"
+description = "Context- and population-conditioned evaluation of model-generated text"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Lifan Hu"}]
+dependencies = [
+  "numpy>=1.24",
+  "pydantic>=2.6",
+  "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+stats = ["scipy>=1.10", "statsmodels>=0.14"]
+semantic = ["sentence-transformers>=3.0"]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+
+[project.scripts]
+shuorenhua-build-pairs = "shuorenhua_bench.pairing:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/shuorenhua_bench"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+

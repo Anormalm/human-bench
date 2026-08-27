@@ -1,0 +1,22 @@
+<View>
+  <Header value="Read the scenario, then compare the anonymous responses." />
+  <Text name="context" value="$context" />
+  <Text name="instruction" value="$instruction" />
+  <Header value="Response A" />
+  <Text name="response_a_text" value="$response_a_text" />
+  <Header value="Response B" />
+  <Text name="response_b_text" value="$response_b_text" />
+  <Choices name="preference" toName="context" choice="single" required="true">
+    <Choice value="A" />
+    <Choice value="tie" />
+    <Choice value="B" />
+  </Choices>
+  <Choices name="action_a" toName="response_a_text" choice="single" required="true">
+    <Choice value="send" /><Choice value="revise" /><Choice value="reject" />
+  </Choices>
+  <Choices name="action_b" toName="response_b_text" choice="single" required="true">
+    <Choice value="send" /><Choice value="revise" /><Choice value="reject" />
+  </Choices>
+  <Rating name="confidence" toName="context" maxRating="5" required="true" />
+</View>
+

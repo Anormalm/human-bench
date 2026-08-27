@@ -1,0 +1,26 @@
+version: "0.1"
+construct_statement: >-
+  Measure how different populations perceive, prefer, use, and revise model-generated
+  text under specific communication contexts.
+problem_spans:
+  formulaic_transition: Reusable transition or discourse scaffold with little local value.
+  unsupported_elevation: Inflates importance, certainty, emotion, or commitment beyond the context.
+  redundant_summary: Restates content without adding useful information.
+  generic_empathy: Stock empathy not grounded in the speaker, recipient, or situation.
+  register_mismatch: Tone or formality conflicts with role, relationship, channel, or intent.
+  vague_reference: Uses an unclear referent where the context requires specificity.
+  excessive_parallelism: Repeated syntactic pattern that makes the response feel templated.
+  unwanted_meta_text: Talks about answering, drafting, or assistance instead of communicating.
+  factual_change: Adds, removes, or alters a fact, entity, number, date, risk, or promise.
+  instruction_failure: Violates an explicit user constraint.
+dimensions:
+  contextual_acceptability: Pairwise preference within the supplied context.
+  direct_use_probability: Probability of send unchanged, revise, or reject.
+  revision_burden: Time and normalized edit distance needed to become usable.
+  information_utility: Relevance and useful information density.
+  register_appropriateness: Fit to speaker, audience, relationship, channel, and genre.
+  formulaicity: Repetition or overrepresented fixed expressions.
+  semantic_preservation: Preservation of propositions and explicit constraints.
+  factual_integrity: Absence of introduced or changed facts.
+  source_detectability: Separate research track; never included in the main score.
+
