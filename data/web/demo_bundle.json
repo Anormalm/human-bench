@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.2",
+  "created_at": "2026-08-28T07:00:13.609519+00:00",
+  "n_pairs": 1,
+  "items": [
+    {
+      "pair_id": "pair-8a7e6518d5a8e8ac",
+      "scenario_id": "zh-work-001",
+      "language": "zh-CN",
+      "genre": "workplace_message",
+      "relationship": "colleague",
+      "intent": "explain",
+      "channel": "wechat_private",
+      "context": "你答应周五把两张结果图发给同事，但实验还没跑完。",
+      "instruction": "向同事解释延期，并提出新的明确时间。",
+      "required_facts": [
+        "两张结果图",
+        "周一下午"
+      ],
+      "prohibited_changes": [
+        "不要声称实验已经完成"
+      ],
+      "response_a": "zh-work-001-concise",
+      "response_b": "zh-work-001-formulaic",
+      "response_a_text": "抱歉，实验还没跑完，两张结果图周五发不了了。我周末补完，周一下午发你，可以吗？",
+      "response_b_text": "非常抱歉给你带来不便。由于实验尚未完成，我无法按原计划于周五提供两张结果图。我计划在周末完成相关工作，并于周一下午发送。感谢理解。"
+    }
+  ]
+}

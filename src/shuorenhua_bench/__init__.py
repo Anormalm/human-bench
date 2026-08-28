@@ -3,5 +3,4 @@
 from .schemas import Pair, PairwiseJudgment, Response, Scenario
 
 __all__ = ["Scenario", "Response", "Pair", "PairwiseJudgment"]
-__version__ = "0.1.0"
-
+__version__ = "0.2.0"

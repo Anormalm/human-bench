@@ -1,0 +1,36 @@
+benchmark_id: chinese-messaging-alpha-v0.2
+seed: 20260827
+scenario_file: data/prompts/pilot_zh_messaging_v0.2.jsonl
+tracks: [native_generation]
+scenario_count: 24
+generation:
+  systems_file: configs/systems.example.yaml
+  decoding_locked_within_system: true
+  provenance_manifest_required: true
+pairing:
+  strategy: cross_system_round_robin
+  judgments_per_pair_minimum: 3
+  allow_same_system: false
+  counterbalance_positions: true
+splitting:
+  strategy: connected_group_stratified
+  group_keys: [semantic_cluster_id, source_template_id]
+  ratios: {train: 0.6, dev: 0.2, test: 0.2}
+annotation:
+  preference_labels: [A, tie, B]
+  action_labels: [send, revise, reject]
+  confidence_range: [1, 5]
+  source_detection_same_screen: false
+reporting:
+  primary_model: davidson_bradley_terry
+  confidence_interval: prompt_clustered_bootstrap
+  bootstrap_samples: 1000
+  mandatory_overall_score: false
+  disagreement_metric: normalized_vote_entropy
+diagnostics:
+  interpretation: explanatory_only
+  repetition: true
+  excess_ngrams: true
+  semantic_preservation: true
+  register_distance: true
+

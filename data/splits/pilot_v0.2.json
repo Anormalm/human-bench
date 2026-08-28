@@ -1,0 +1,35 @@
+{
+  "seed": 20260827,
+  "splits": {
+    "train": [
+      "zh-academic-001",
+      "zh-academic-002",
+      "zh-group-002",
+      "zh-private-002",
+      "zh-private-003",
+      "zh-public-002",
+      "zh-service-001",
+      "zh-service-003",
+      "zh-service-004",
+      "zh-stranger-002",
+      "zh-tech-001",
+      "zh-tech-002",
+      "zh-work-003",
+      "zh-work-004",
+      "zh-work-006"
+    ],
+    "dev": [
+      "zh-service-002",
+      "zh-stranger-001",
+      "zh-work-001",
+      "zh-work-002",
+      "zh-work-005"
+    ],
+    "test": [
+      "zh-group-001",
+      "zh-private-001",
+      "zh-private-004",
+      "zh-public-001"
+    ]
+  }
+}
