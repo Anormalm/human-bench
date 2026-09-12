@@ -7,6 +7,7 @@ from collections import Counter
 from pathlib import Path
 
 from .annotation_bundle import build_annotation_bundle
+from .audit import audit_dataset
 from .dataset import read_jsonl, write_jsonl
 from .pairing import build_pairs
 from .schemas import Pair, PairwiseJudgment, Response, Scenario
@@ -28,6 +29,7 @@ def prepare_study(scenarios, responses, output, *, raters=9, judgments_per_pair=
     if judgments_per_pair < 2 or raters < judgments_per_pair:
         raise ValueError("require at least two judgments per pair and enough distinct raters")
     require_valid(scenarios, responses)
+    input_audit = audit_dataset(scenarios, responses)
     pairs = build_pairs(responses, seed)
     if not pairs:
         raise ValueError("no compatible cross-system pairs")
@@ -89,6 +91,11 @@ def prepare_study(scenarios, responses, output, *, raters=9, judgments_per_pair=
         "n_assignments": raters, "judgments_per_pair": judgments_per_pair,
         "n_planned_judgments": len(pairs) * judgments_per_pair,
         "assignment_loads": counts, "assignments": assignments, "sha256": hashes,
+        "input_coverage": {
+            "missing_system_scenario_cells": input_audit["missing_system_scenario_cells"],
+            "scenario_sources": input_audit["scenario_sources"],
+            "human_reference_count": input_audit["human_reference_count"],
+        },
         "evidence_status": "synthetic_demo" if demo else "awaiting_human_annotation",
         "protocol": {
             "primary_outcome": "contextual preference, A/B/tie",

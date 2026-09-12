@@ -7,6 +7,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlsplit
 
 
 @dataclass(frozen=True)
@@ -26,7 +27,9 @@ class ProviderConfig:
             raise ValueError("invalid provider identity, retries or timeout")
         if self.temperature < 0 or not 0 < self.top_p <= 1 or self.max_tokens < 1:
             raise ValueError("invalid decoding configuration")
-        if not self.base_url.startswith(("https://", "http://127.0.0.1", "http://localhost")):
+        endpoint = urlsplit(self.base_url)
+        if not (endpoint.scheme == "https" and endpoint.hostname
+                or endpoint.scheme == "http" and endpoint.hostname in {"localhost", "127.0.0.1", "::1"}):
             raise ValueError("use HTTPS or a local inference endpoint")
 
 

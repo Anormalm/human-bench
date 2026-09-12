@@ -57,6 +57,10 @@ def main():
             min_raters=manifest["judgments_per_pair"], bootstrap_samples=args.bootstrap_samples,
             seed=args.seed)
         result["study_id"] = manifest["study_id"]
+        result["input_coverage"] = manifest.get("input_coverage", {})
+        missing = result["input_coverage"].get("missing_system_scenario_cells", [])
+        if missing:
+            result["warnings"].append(f"{len(missing)} declared system/scenario cells have no response.")
         result["import"] = {"identical_duplicate_exports_ignored": duplicates,
                             "input_files": [p.name for p in args.exports]}
         result["provenance"] = {"study_hashes": manifest["sha256"],

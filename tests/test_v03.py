@@ -337,3 +337,16 @@ def test_provider_rejects_truncated_completion(monkeypatch):
         system_id="A", model="model", base_url="https://example.com", api_key_env="TEST_BENCH_API_KEY"))
     with pytest.raises(RuntimeError, match="did not finish"):
         provider.generate(system_prompt="s", user_prompt="u")
+
+def test_study_preserves_missing_generation_coverage(tmp_path):
+    manifest = prepare_study([scenario("s"), scenario("missing")],
+                             [response("a", "A"), response("b", "B")], tmp_path, raters=3)
+    missing = manifest["input_coverage"]["missing_system_scenario_cells"]
+    assert len(missing) == 2 and all(x["scenario_id"] == "missing" for x in missing)
+
+
+@pytest.mark.parametrize("url", ["http://localhost.evil.example/v1", "http://127.0.0.1.evil.example/v1"])
+def test_provider_does_not_treat_hostname_prefix_as_local(url):
+    from shuorenhua_bench.providers import ProviderConfig
+    with pytest.raises(ValueError, match="HTTPS"):
+        ProviderConfig(system_id="A", model="m", base_url=url, api_key_env="key")
