@@ -1,4 +1,4 @@
-# Benchmark card · v0.3
+# Benchmark card · v0.4
 
 | Property | Current release |
 |---|---|
@@ -15,7 +15,7 @@
 | Annotation | Blind per-rater packets, local browser storage, JSONL export |
 | Population validity | Not yet established |
 | Protected holdout | Not included |
-| Automatic judge | Not included |
+| Automatic judge | Optional single model; two-order agreement filter; separate screening report, raw decisions and human validation packets. See [run guide](run_models.md). |
 | SOTA claim | None; this is study infrastructure |
 
 Read the [research protocol](research_protocol_v03.md) for the estimator, limitations,

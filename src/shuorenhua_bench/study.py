@@ -143,6 +143,8 @@ def import_judgments(study, files):
                 raise ValueError("judgment belongs to a different study")
             if manifest["evidence_status"] == "synthetic_demo" and j.evidence_kind != "synthetic":
                 raise ValueError("demo exports must be labeled synthetic")
+            if manifest["evidence_status"] != "synthetic_demo" and j.evidence_kind != "human":
+                raise ValueError("human annotation exports must be labeled human")
             if j.assignment_id not in assignments:
                 raise ValueError("unknown annotation assignment")
             if j.annotator_id != j.assignment_id:

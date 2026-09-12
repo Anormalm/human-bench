@@ -84,6 +84,10 @@ def aggregate(judgments: list[PairwiseJudgment], responses: list[Response], *,
         raise ValueError("at least one judgment is required")
     if bootstrap_samples < 0 or min_raters < 1:
         raise ValueError("invalid bootstrap sample count or minimum raters")
+    evidence = {j.evidence_kind for j in judgments}
+    if len(evidence) != 1:
+        raise ValueError("evaluate human, model and synthetic evidence separately")
+    model_judged = evidence == {"model"}
     require_valid(scenarios, responses, pairs, judgments)
     systems = {r.response_id: r.system_id for r in responses}
     response_lookup = {r.response_id: r for r in responses}
@@ -202,7 +206,7 @@ def aggregate(judgments: list[PairwiseJudgment], responses: list[Response], *,
     warnings = []
     if len(keys) < 30:
         warnings.append("Fewer than 30 independent scenario groups; uncertainty is exploratory.")
-    if not position_identifiable:
+    if fit_position and not position_identifiable:
         warnings.append("Display position is confounded with systems; position adjustment disabled.")
     if not reliable_bootstrap:
         warnings.append("Bootstrap is absent, small, or lost >10% of fits; no separation claims.")
@@ -217,8 +221,10 @@ def aggregate(judgments: list[PairwiseJudgment], responses: list[Response], *,
     unobserved = sorted(track_systems - set(names))
     if unobserved:
         warnings.append(f"No judgments for systems: {unobserved}; their estimates are unavailable.")
-    evidence = {j.evidence_kind for j in judgments}
-    if evidence != {"human"}:
+    if model_judged:
+        warnings.append("MODEL-JUDGED screening: these predictions are not human preferences. "
+                        "Judge bias and errors are not captured by the bootstrap intervals.")
+    elif evidence != {"human"}:
         warnings.append("SYNTHETIC evidence is present: this report is a software demonstration.")
     slices = {}
     if scenarios is not None:
@@ -251,7 +257,8 @@ def aggregate(judgments: list[PairwiseJudgment], responses: list[Response], *,
             "n_timed_judgments": len(durations), "automatic_exclusion": False,
         }
     return {
-        "schema_version": "0.3", "evidence_kind": "human" if evidence == {"human"} else "synthetic_or_mixed",
+        "schema_version": "0.3", "evidence_kind": "model_judged" if model_judged else (
+            "human" if evidence == {"human"} else "synthetic_or_mixed"),
         "track": next(iter(tracks)), "systems": system_summary, "contrasts": contrasts,
         "pairwise_model": {
             "name": "regularized Davidson-Bradley-Terry", "tie_parameter": result.tie_parameter,
@@ -265,7 +272,9 @@ def aggregate(judgments: list[PairwiseJudgment], responses: list[Response], *,
             "requested_samples": bootstrap_samples, "attempted_samples": effective_samples,
             "successful_model_samples": effective_samples - skipped, "skipped_model_samples": skipped,
             "n_independent_groups": len(keys), "seed": seed,
-            "scope": "scenario sampling, conditional on recruited annotators; not population uncertainty",
+            "scope": "scenario sampling, conditional on a fixed model judge and accepted comparisons; "
+                     "not human preference or judge uncertainty" if model_judged else
+                     "scenario sampling, conditional on recruited annotators; not population uncertainty",
         },
         "agreement": {
             "mean_pair_disagreement_entropy": float(np.mean(entropy)) if entropy else None,
@@ -277,7 +286,8 @@ def aggregate(judgments: list[PairwiseJudgment], responses: list[Response], *,
                      "n_expected_pairs": len(expected_pair_ids)},
         "sample": {"n_judgments": len(judgments), "n_pairs": len(pair_votes),
                    "n_scenarios": len({j.scenario_id for j in judgments}),
-                   "n_annotators": len({j.annotator_id for j in judgments})},
+                   "n_annotators": 0 if model_judged else len({j.annotator_id for j in judgments}),
+                   "n_model_judges": len({j.annotator_id for j in judgments}) if model_judged else 0},
         "slices": slices, "warnings": warnings, "rater_diagnostics": rater_diagnostics,
         "problem_spans": {"counts_by_system_and_type": {s: dict(c) for s, c in span_counts.items()},
                           "interpretation": "Optional flags: counts only, not error prevalence or quality scores."},

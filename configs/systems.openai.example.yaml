@@ -20,4 +20,6 @@ systems:
     max_tokens: 512
     retries: 3
 # Select models supporting chat completions and these decoding parameters.
-# Providers/models that require different APIs or token parameters need an adapter.
+# Optional: token_parameter: max_completion_tokens, reasoning_effort: low.
+# Set temperature/top_p to null to omit them where a reasoning model disallows them.
+# Different provider-native APIs still require an adapter.

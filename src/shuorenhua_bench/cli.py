@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
 from pathlib import Path
 
+import yaml
+
 from .audit import audit_dataset, plan_sample_size
+from .benchmark_run import run_benchmark
 from .dataset import read_jsonl, write_jsonl
 from .leaderboard.aggregate import aggregate
 from .schemas import Pair, Response, Scenario
@@ -14,6 +18,17 @@ from .study import import_judgments, prepare_study, verify_study, write_json
 def main():
     parser = argparse.ArgumentParser(prog="shuorenhua", description="Human-grounded communication benchmark")
     sub = parser.add_subparsers(dest="command", required=True)
+    run = sub.add_parser("run", help="Generate, judge both orders, rank, and prepare human validation")
+    run.add_argument("--scenarios", type=Path, required=True)
+    run.add_argument("--config", type=Path, required=True)
+    run.add_argument("--output", type=Path, required=True)
+    run.add_argument("--responses", type=Path, help="Use existing complete native-generation outputs")
+    run.add_argument("--limit", type=int, help="Select a reproducible random scenario subset")
+    run.add_argument("--seed", type=int, default=20260913)
+    run.add_argument("--bootstrap-samples", type=int, default=1000)
+    run.add_argument("--execute", action="store_true", help="Make paid API calls; default is preview")
+    run.add_argument("--max-requests", type=int, help="Persistent HTTP attempt cap, including retries")
+    run.add_argument("--resume", action="store_true")
     prepare = sub.add_parser("prepare", help="Freeze a study and create blinded rater packets")
     prepare.add_argument("--scenarios", type=Path, required=True)
     prepare.add_argument("--responses", type=Path, required=True)
@@ -43,7 +58,22 @@ def main():
     verify = sub.add_parser("verify", help="Verify all frozen study files")
     verify.add_argument("--study", type=Path, required=True)
     args = parser.parse_args()
-    if args.command == "prepare":
+    if args.command == "run":
+        scenarios = read_jsonl(args.scenarios, Scenario)
+        if args.limit is not None:
+            if args.limit < 1 or args.limit > len(scenarios):
+                parser.error("--limit must be between 1 and the scenario count")
+            indices = sorted(random.Random(args.seed).sample(range(len(scenarios)), args.limit))
+            scenarios = [scenarios[i] for i in indices]
+        responses = read_jsonl(args.responses, Response) if args.responses else None
+        if responses is not None and args.limit is not None:
+            selected = {s.scenario_id for s in scenarios}
+            responses = [r for r in responses if r.scenario_id in selected]
+        result = run_benchmark(
+            scenarios, yaml.safe_load(args.config.read_text(encoding="utf-8-sig")), args.output,
+            execute=args.execute, max_requests=args.max_requests, resume=args.resume,
+            bootstrap_samples=args.bootstrap_samples, seed=args.seed, existing_responses=responses)
+    elif args.command == "prepare":
         result = prepare_study(read_jsonl(args.scenarios, Scenario), read_jsonl(args.responses, Response),
                                args.output, raters=args.raters, judgments_per_pair=args.judgments_per_pair,
                                seed=args.seed, study_name=args.name)

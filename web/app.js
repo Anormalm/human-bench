@@ -179,12 +179,17 @@ function setReport(x) {
     throw new Error("Expected a v0.3 evaluation report.");
   }
   report = x;
-  const synthetic = x.evidence_kind !== "human";
-  const notice = synthetic ? "SOFTWARE DEMONSTRATION · All votes in this report are synthetic. These are not model performance results."
+  const modelJudged = x.evidence_kind === "model_judged";
+  const synthetic = !modelJudged && x.evidence_kind !== "human";
+  const notice = modelJudged ? "MODEL-JUDGED SCREENING · Predictions from one model judge. These are not human preference measurements." : synthetic ? "SOFTWARE DEMONSTRATION · All votes in this report are synthetic. These are not model performance results."
     : "HUMAN JUDGMENTS · Interpretation depends on study design, participant recruitment and the evidence checks below.";
+  $("directUseHeading").textContent = modelJudged ? "Judge-predicted direct use" : "Direct use";
+  $("uncertaintyCaption").textContent = "Ability is a relative log-strength estimate. " + x.uncertainty.scope;
   $("reportNotice").textContent = notice; $("evidenceNotice").textContent = notice;
-  const values = [[x.sample.n_scenarios, "Scenarios in this report"], [Object.keys(x.systems).length, "Systems compared"],
-    [x.sample.n_judgments, synthetic ? "Synthetic demo judgments" : "Human judgments"], [x.uncertainty.n_independent_groups, "Independent scenario groups"]];
+  const values = [[modelJudged ? (x.automatic_judge?.n_scenarios_judged ?? x.sample.n_scenarios) : x.sample.n_scenarios,
+    modelJudged ? "Scenarios judged" : "Scenarios in this report"], [Object.keys(x.systems).length, "Systems compared"],
+    [x.sample.n_judgments, modelJudged ? "Accepted model judgments" : synthetic ? "Synthetic demo judgments" : "Human judgments"],
+    [x.uncertainty.n_independent_groups, modelJudged ? "Independent groups with judgments" : "Independent scenario groups"]];
   stats("reportStats", values); stats("overviewStats", values);
   const entries = Object.entries(x.systems).sort((a, b) => (b[1].ability ?? -Infinity) - (a[1].ability ?? -Infinity));
   const all = entries.flatMap(([, s]) => s.ability_95ci_cluster_bootstrap || [s.ability]).filter(Number.isFinite);
@@ -200,7 +205,7 @@ function setReport(x) {
     estimate.append(plot, text); cell.append(estimate); row.append(cell);
     const direct = node("td", pct(s.direct_use_rate));
     if (s.direct_use_95ci_cluster_bootstrap) direct.append(node("small", s.direct_use_95ci_cluster_bootstrap.map(pct).join(" – ")));
-    row.append(direct, node("td", s.wins + " / " + s.ties + " / " + s.losses), node("td", s.n_unique_response_rater_actions));
+    row.append(direct, node("td", s.wins + " / " + s.ties + " / " + s.losses), node("td", s.n_unique_response_rater_actions ?? "—"));
     return row;
   }));
   $("contrasts").replaceChildren(...x.contrasts.map(c => {
@@ -213,11 +218,18 @@ function setReport(x) {
   }));
   const u = x.uncertainty;
   $("checks").replaceChildren(
-    checkLine("Optimizer", x.pairwise_model.converged ? "Converged" : "Not converged"),
+    checkLine("Optimizer", x.ranking_status === "withheld" ? "Not fitted" : x.pairwise_model.converged ? "Converged" : "Not converged"),
     checkLine("Bootstrap fits", u.successful_model_samples + " / " + u.requested_samples),
     checkLine("Position adjustment", x.pairwise_model.position_adjusted ? "Included" : "Not identifiable / off"),
-    checkLine("Under-annotated pairs", x.coverage.under_annotated_pairs.length),
-    checkLine("Pairwise agreement", pct(x.agreement.mean_pairwise_agreement)));
+    checkLine(modelJudged ? "Unresolved pairs" : "Under-annotated pairs", x.coverage.under_annotated_pairs.length),
+    checkLine(modelJudged ? "Two-order agreement" : "Pairwise agreement",
+      pct(modelJudged ? x.automatic_judge?.accepted_fraction : x.agreement.mean_pairwise_agreement)));
+  if (x.automatic_judge) {
+    $("checks").append(checkLine("Judge", x.automatic_judge.requested_model),
+      checkLine("Accepted comparisons", x.automatic_judge.n_accepted_pairs + " / " + x.automatic_judge.n_pairs),
+      checkLine("Excluded comparisons", x.automatic_judge.n_excluded_pairs),
+      checkLine("Ranking", x.ranking_status === "withheld" ? "Withheld" : "Screening estimate"));
+  }
   $("warnings").replaceChildren(...x.warnings.map(w => node("li", w)));
   renderSlices();
 }
@@ -241,3 +253,46 @@ getJson("/api/report").then(setReport).catch(() => {
   $("evidenceNotice").textContent = "No evaluation report loaded. Import a report on the Results page.";
   $("reportNotice").textContent = "Import a v0.3 report to inspect results.";
 });
+
+function runSetup() {
+  const count = Number($("runCount").value);
+  const reasoning = $("runReasoning").value === "reasoning";
+  const endpoint = $("runEndpoint").value.trim(), keyEnv = $("runKeyEnv").value.trim();
+  const url = new URL(endpoint);
+  if (!(url.protocol === "https:" || (url.protocol === "http:" &&
+        ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)))) {
+    throw new Error("Use HTTPS or a local inference endpoint.");
+  }
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(keyEnv)) throw new Error("Enter an environment variable name.");
+  const models = [$("runModelA").value.trim(), $("runModelB").value.trim(), $("runJudge").value.trim()];
+  if (models.some(x => !x)) throw new Error("Enter both candidate models and a judge.");
+  const common = {base_url: endpoint, api_key_env: keyEnv, retries: 2,
+    temperature: reasoning ? null : 0.2, top_p: reasoning ? null : 1,
+    max_tokens: reasoning ? 4096 : 512, token_parameter: reasoning ? "max_completion_tokens" : "max_tokens"};
+  if (reasoning) common.reasoning_effort = "low";
+  return {count, config: {
+    system_prompt: "你正在替用户撰写一条真实沟通消息。严格依据场景、关系、渠道和事实作答；不新增事实或承诺，只输出正文。",
+    systems: models.slice(0, 2).map((model, i) => ({...common, system_id: "model-" + (i ? "b" : "a"), model})),
+    judge: {...common, model: models[2], max_tokens: reasoning ? 4096 : 768,
+      response_format: $("runFormat").value}
+  }};
+}
+function updateRunPlan() {
+  const count = Number($("runCount").value);
+  const command = "python -m shuorenhua_bench.cli run --scenarios data/prompts/suite_zh_v0.3.jsonl --config bench-config.json --output studies/model-run --limit " + count;
+  $("runPreview").textContent = command;
+  $("runExecute").textContent = command + " --execute --max-requests " + count * 8;
+  $("runPlan").textContent = count * 2 + " generated responses + " + count * 2 +
+    " judge completions → up to " + count + " accepted comparisons. Cap: " + count * 8 +
+    " HTTP attempts, allowing two attempts per completion.";
+}
+$("runCount").onchange = updateRunPlan;
+$("downloadRunConfig").onclick = () => {
+  try {
+    const {config} = runSetup();
+    const url = URL.createObjectURL(new Blob([JSON.stringify(config, null, 2) + "\n"], {type: "application/json"}));
+    const link = node("a"); link.href = url; link.download = "bench-config.json"; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000); clearError();
+  } catch (e) { error(e.message); }
+};
+updateRunPlan();

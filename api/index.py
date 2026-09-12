@@ -32,7 +32,7 @@ def app(environ: dict, start_response: Callable) -> Iterable[bytes]:
                          b'{"error":"read-only interface"}')
     if path == "/health":
         return _response(start_response, "200 OK", "application/json",
-                         json.dumps({"status": "ok", "service": "shuorenhua-bench", "version": "0.3.0"}).encode())
+                         json.dumps({"status": "ok", "service": "shuorenhua-bench", "version": "0.4.0"}).encode())
     if path in STATIC:
         file, mime = STATIC[path]
         return _response(start_response, "200 OK", mime, (ROOT / "web" / file).read_bytes())
