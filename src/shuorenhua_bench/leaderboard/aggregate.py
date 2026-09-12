@@ -1,153 +1,286 @@
 from __future__ import annotations
 
+import itertools
 import math
 from collections import Counter, defaultdict
 
 import numpy as np
 
-from ..schemas import PairwiseJudgment, Response
-from ..statistics.davidson_bt import fit_davidson
+from ..schemas import PairwiseJudgment, Response, Scenario
+from ..statistics.davidson_bt import comparison_components, fit_davidson, outcome_probabilities
+from ..validation import require_valid
 
 
-def _wilson(successes: int, total: int, z: float = 1.96) -> list[float]:
-    if total == 0:
-        return [0.0, 0.0]
-    p = successes / total
-    denominator = 1 + z * z / total
-    center = (p + z * z / (2 * total)) / denominator
-    margin = z * math.sqrt(p * (1 - p) / total + z * z / (4 * total * total)) / denominator
-    return [max(0.0, center - margin), min(1.0, center + margin)]
-
-
-def _normalized_entropy(counts: Counter) -> float:
+def _normalized_entropy(counts):
     total = sum(counts.values())
-    if total <= 1:
-        return 0.0
-    probabilities = [counts[label] / total for label in ("A", "B", "tie") if counts[label]]
-    return -sum(p * math.log(p) for p in probabilities) / math.log(3)
+    return -sum((v / total) * math.log(v / total) for v in counts.values() if v) / math.log(3)
 
 
-def _bootstrap_abilities(
-    judgments: list[PairwiseJudgment],
-    systems: dict[str, str],
-    *,
-    samples: int,
-    seed: int,
-) -> dict[str, list[float]]:
-    if samples <= 0:
-        return {}
-    by_scenario: dict[str, list[PairwiseJudgment]] = defaultdict(list)
-    for judgment in judgments:
-        by_scenario[judgment.scenario_id].append(judgment)
-    keys = sorted(by_scenario)
-    rng = np.random.default_rng(seed)
-    estimates: dict[str, list[float]] = defaultdict(list)
-    for _ in range(samples):
-        sample_keys = rng.choice(keys, size=len(keys), replace=True)
-        sampled = [item for key in sample_keys for item in by_scenario[str(key)]]
-        comparisons = [
-            (systems[item.response_a], systems[item.response_b], item.preference)
-            for item in sampled
-        ]
-        result = fit_davidson(comparisons, max_iter=250)
-        for system, ability in result.abilities.items():
-            estimates[system].append(ability)
+def _clusters(scenarios, judgments):
+    # Transitive closure over BOTH identifiers; a template and a semantic cluster can bridge.
+    ids = sorted({j.scenario_id for j in judgments})
+    parent = {s.scenario_id: s.scenario_id for s in scenarios or []}
+    parent.update({s: parent.get(s, s) for s in ids})
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    owners = {}
+    for s in sorted(scenarios or [], key=lambda s: s.scenario_id):
+        for field in ("semantic_cluster_id", "source_template_id"):
+            value = getattr(s, field)
+            if value:
+                key = (field, value)
+                if key in owners:
+                    parent[find(s.scenario_id)] = find(owners[key])
+                owners[key] = s.scenario_id
+    return {s: find(s) for s in ids}
+
+
+def _ci(values):
+    return [float(x) for x in np.quantile(values, [0.025, 0.975])] if values else None
+
+
+def _position_identifiable(comparisons, names):
+    design = np.zeros((len(comparisons), len(names)))
+    indices = {s: i for i, s in enumerate(names)}
+    for i, (a, b, _) in enumerate(comparisons):
+        if indices[a] < len(names) - 1:
+            design[i, indices[a]] += 1
+        if indices[b] < len(names) - 1:
+            design[i, indices[b]] -= 1
+        design[i, -1] = 1
+    return bool(np.linalg.matrix_rank(design) == len(names))
+
+
+def _actions(judgments, systems):
+    # One action per annotator/response. Multiple comparisons must not inflate n.
+    observations = defaultdict(list)
+    for j in judgments:
+        observations[(j.scenario_id, j.annotator_id, j.response_a)].append(j.action_a)
+        observations[(j.scenario_id, j.annotator_id, j.response_b)].append(j.action_b)
+    by_system = defaultdict(list)
+    conflicts = 0
+    for (_, _, response), labels in observations.items():
+        conflicts += int(len(set(labels)) > 1)
+        by_system[systems[response]].append(
+            {label: labels.count(label) / len(labels) for label in ("send", "revise", "reject")}
+        )
     return {
-        system: [float(x) for x in np.quantile(values, [0.025, 0.975])]
-        for system, values in estimates.items()
-    }
+        system: {label: float(np.mean([row[label] for row in rows]))
+                 for label in ("send", "revise", "reject")}
+        for system, rows in by_system.items()
+    }, {s: len(rows) for s, rows in by_system.items()}, conflicts
 
 
-def aggregate(
-    judgments: list[PairwiseJudgment],
-    responses: list[Response],
-    *,
-    bootstrap_samples: int = 200,
-    seed: int = 20260827,
-) -> dict:
+def aggregate(judgments: list[PairwiseJudgment], responses: list[Response], *,
+              bootstrap_samples: int = 200, seed: int = 20260827,
+              scenarios: list[Scenario] | None = None, pairs=None,
+              min_raters: int = 3, fit_position: bool = True) -> dict:
     if not judgments:
-        raise ValueError("at least one human judgment is required")
-    systems = {response.response_id: response.system_id for response in responses}
-    missing = {
-        response_id
-        for item in judgments
-        for response_id in (item.response_a, item.response_b)
-        if response_id not in systems
-    }
-    if missing:
-        raise ValueError(f"judgments reference missing responses: {sorted(missing)}")
-
-    comparisons = [
-        (systems[item.response_a], systems[item.response_b], item.preference) for item in judgments
-    ]
-    result = fit_davidson(comparisons)
-    ability_intervals = _bootstrap_abilities(judgments, systems, samples=bootstrap_samples, seed=seed)
-    actions: dict[str, Counter] = defaultdict(Counter)
-    outcomes: dict[str, Counter] = defaultdict(Counter)
-    pair_votes: dict[str, Counter] = defaultdict(Counter)
-    for item in judgments:
-        system_a, system_b = systems[item.response_a], systems[item.response_b]
-        actions[system_a][item.action_a] += 1
-        actions[system_b][item.action_b] += 1
-        pair_votes[item.pair_id][item.preference] += 1
-        if item.preference == "A":
-            outcomes[system_a]["win"] += 1
-            outcomes[system_b]["loss"] += 1
-        elif item.preference == "B":
-            outcomes[system_b]["win"] += 1
-            outcomes[system_a]["loss"] += 1
-        else:
-            outcomes[system_a]["tie"] += 1
-            outcomes[system_b]["tie"] += 1
-
+        raise ValueError("at least one judgment is required")
+    if bootstrap_samples < 0 or min_raters < 1:
+        raise ValueError("invalid bootstrap sample count or minimum raters")
+    require_valid(scenarios, responses, pairs, judgments)
+    systems = {r.response_id: r.system_id for r in responses}
+    response_lookup = {r.response_id: r for r in responses}
+    used_responses = {r for j in judgments for r in (j.response_a, j.response_b)}
+    tracks = {response_lookup[r].track for r in used_responses}
+    if len(tracks) != 1:
+        raise ValueError("evaluate native_generation and humanization tracks separately")
+    track_systems = {r.system_id for r in responses if r.track in tracks}
+    comparisons = [(systems[j.response_a], systems[j.response_b], j.preference) for j in judgments]
+    components = comparison_components(comparisons)
+    if len(components) > 1:
+        raise ValueError(f"disconnected comparison graph: {components}; collect bridge comparisons")
+    names = sorted({s for a, b, _ in comparisons for s in (a, b)})
+    # Check identifiability of system effects AND position before adjusting.
+    position_identifiable = _position_identifiable(comparisons, names)
+    adjust_position = fit_position and position_identifiable
+    result = fit_davidson(comparisons, fit_position=adjust_position)
+    action_rates, action_ns, action_conflicts = _actions(judgments, systems)
+    cluster_map = _clusters(scenarios, judgments)
+    clustered = defaultdict(list)
+    for j in judgments:
+        clustered[cluster_map[j.scenario_id]].append(j)
+    keys = sorted(clustered)
+    rng = np.random.default_rng(seed)
+    ability_samples, direct_samples, rank_samples = defaultdict(list), defaultdict(list), defaultdict(list)
+    contrast_samples = defaultdict(list)
+    skipped = 0
+    effective_samples = bootstrap_samples if len(keys) >= 2 else 0
+    for _ in range(effective_samples):
+        sampled = []
+        # Unique occurrence IDs keep duplicated clusters as duplicated observations.
+        for occurrence, key in enumerate(rng.choice(keys, len(keys), replace=True)):
+            sampled.extend(j.model_copy(update={"scenario_id": f"{occurrence}:{j.scenario_id}"})
+                           for j in clustered[str(key)])
+        rates, _, _ = _actions(sampled, systems)
+        for s, rates_s in rates.items():
+            direct_samples[s].append(rates_s["send"])
+        comps = [(systems[j.response_a], systems[j.response_b], j.preference) for j in sampled]
+        if ({s for a, b, _ in comps for s in (a, b)} != set(names)
+                or len(comparison_components(comps)) != 1
+                or (adjust_position and not _position_identifiable(comps, names))):
+            skipped += 1
+            continue
+        fitted = fit_davidson(comps, fit_position=adjust_position)
+        if not fitted.converged:
+            skipped += 1
+            continue
+        for s in names:
+            ability_samples[s].append(fitted.abilities[s])
+            rank_samples[s].append(1 + sum(fitted.abilities[t] > fitted.abilities[s] + 1e-8
+                                          for t in names))
+        for a, b in itertools.combinations(names, 2):
+            contrast_samples[(a, b)].append(fitted.abilities[a] - fitted.abilities[b])
+    outcomes, pair_votes, raters = defaultdict(Counter), defaultdict(Counter), defaultdict(set)
+    position = defaultdict(Counter)
+    head_to_head = defaultdict(Counter)
+    for j in judgments:
+        a, b = systems[j.response_a], systems[j.response_b]
+        position[a]["A"] += 1
+        position[b]["B"] += 1
+        winner = a if j.preference == "A" else b if j.preference == "B" else "tie"
+        outcomes[a]["tie" if winner == "tie" else "win" if winner == a else "loss"] += 1
+        outcomes[b]["tie" if winner == "tie" else "win" if winner == b else "loss"] += 1
+        canonical = tuple(sorted((a, b)))
+        label = "tie" if winner == "tie" else "A" if winner == canonical[0] else "B"
+        head_to_head[canonical][label] += 1
+        # Normalize reversed displays before computing agreement.
+        canonical_responses = sorted((j.response_a, j.response_b))
+        vote = "tie" if j.preference == "tie" else (
+            "A" if (j.response_a if j.preference == "A" else j.response_b) == canonical_responses[0] else "B"
+        )
+        pair_votes[j.pair_id][vote] += 1
+        raters[j.pair_id].add(j.annotator_id)
     system_summary = {}
-    for system in sorted(set(systems.values())):
-        action_counts = actions[system]
-        outcome_counts = outcomes[system]
-        action_total = sum(action_counts.values())
-        comparison_total = sum(outcome_counts.values())
-        send_count = action_counts["send"]
-        system_summary[system] = {
-            "ability": result.abilities.get(system),
-            "ability_95ci_prompt_bootstrap": ability_intervals.get(system),
-            "empirical_preference_rate": (
-                (outcome_counts["win"] + 0.5 * outcome_counts["tie"]) / comparison_total
-                if comparison_total
-                else None
-            ),
-            "wins": outcome_counts["win"],
-            "ties": outcome_counts["tie"],
-            "losses": outcome_counts["loss"],
-            "direct_use_rate": send_count / action_total if action_total else None,
-            "direct_use_95ci_wilson": _wilson(send_count, action_total),
-            "action_distribution": {
-                label: action_counts[label] / action_total if action_total else 0.0
-                for label in ("send", "revise", "reject")
-            },
+    reliable_bootstrap = (effective_samples >= 100 and skipped / effective_samples <= 0.1
+                          and result.converged and len(keys) >= 30)
+    for s in sorted(track_systems):
+        n = sum(outcomes[s].values())
+        system_summary[s] = {
+            "ability": result.abilities.get(s),
+            "ability_95ci_cluster_bootstrap": _ci(ability_samples[s]),
+            "rank_95ci_cluster_bootstrap": _ci(rank_samples[s]),
+            "empirical_preference_rate": (outcomes[s]["win"] + 0.5 * outcomes[s]["tie"]) / n if n else None,
+            "wins": outcomes[s]["win"], "ties": outcomes[s]["tie"], "losses": outcomes[s]["loss"],
+            "direct_use_rate": action_rates.get(s, {}).get("send"),
+            "direct_use_95ci_cluster_bootstrap": _ci(direct_samples[s]),
+            "n_direct_use_bootstrap_samples": len(direct_samples[s]),
+            "n_unique_response_rater_actions": action_ns.get(s, 0),
+            "action_distribution": action_rates.get(s, {}),
+            "display_position_counts": dict(position[s]),
         }
-
-    disagreement = [_normalized_entropy(votes) for votes in pair_votes.values()]
+    contrasts = []
+    # Bonferroni simultaneous percentile intervals across declared system contrasts.
+    # Descriptive ordinary intervals remain visible, never a claim of an exact familywise guarantee.
+    alpha = 0.05 / max(1, len(contrast_samples))
+    for a, b in itertools.combinations(names, 2):
+        values = contrast_samples[(a, b)]
+        ci = _ci(values)
+        simultaneous = [float(x) for x in np.quantile(values, [alpha / 2, 1 - alpha / 2])] if values else None
+        probs = outcome_probabilities(result, a, b)
+        contrasts.append({
+            "system_a": a, "system_b": b, "counts": dict(head_to_head[(a, b)]),
+            "neutral_position_probabilities": probs,
+            "tie_adjusted_preference_probability_a": probs["A"] + 0.5 * probs["tie"],
+            "ability_difference": result.abilities[a] - result.abilities[b],
+            "difference_95ci": ci, "difference_familywise_95ci_bonferroni_percentile": simultaneous,
+            "separated_exploratory": bool(reliable_bootstrap and simultaneous
+                                          and (simultaneous[0] > 0 or simultaneous[1] < 0)),
+        })
+    eligible_votes = [v for v in pair_votes.values() if sum(v.values()) >= 2]
+    entropy = [_normalized_entropy(v) for v in eligible_votes]
+    agreements = [sum(c * (c - 1) for c in v.values()) / (sum(v.values()) * (sum(v.values()) - 1))
+                  for v in eligible_votes]
+    expected_pair_ids = {p.pair_id for p in pairs} if pairs is not None else set(pair_votes)
+    short = sorted(p for p in expected_pair_ids if len(raters[p]) < min_raters)
+    warnings = []
+    if len(keys) < 30:
+        warnings.append("Fewer than 30 independent scenario groups; uncertainty is exploratory.")
+    if not position_identifiable:
+        warnings.append("Display position is confounded with systems; position adjustment disabled.")
+    if not reliable_bootstrap:
+        warnings.append("Bootstrap is absent, small, or lost >10% of fits; no separation claims.")
+    if short:
+        warnings.append(f"{len(short)} pairs have fewer than {min_raters} distinct annotators.")
+    if not result.converged:
+        warnings.append("Primary optimizer did not converge; do not interpret abilities.")
+    if scenarios is None:
+        warnings.append("No scenario metadata: bootstrap groups are prompts, not semantic/template families.")
+    if action_conflicts:
+        warnings.append(f"{action_conflicts} response/rater actions disagree across comparisons; averaged.")
+    unobserved = sorted(track_systems - set(names))
+    if unobserved:
+        warnings.append(f"No judgments for systems: {unobserved}; their estimates are unavailable.")
+    evidence = {j.evidence_kind for j in judgments}
+    if evidence != {"human"}:
+        warnings.append("SYNTHETIC evidence is present: this report is a software demonstration.")
+    slices = {}
+    if scenarios is not None:
+        scenario_lookup = {s.scenario_id: s for s in scenarios}
+        for field in ("language", "genre", "relationship", "intent"):
+            groups = defaultdict(list)
+            for j in judgments:
+                groups[getattr(scenario_lookup[j.scenario_id], field)].append(j)
+            slices[field] = {
+                key: {"n_judgments": len(rows), "n_scenarios": len({j.scenario_id for j in rows}),
+                      "direct_use": _actions(rows, systems)[0]}
+                for key, rows in sorted(groups.items())
+            }
+    rater_groups = defaultdict(list)
+    span_counts = defaultdict(Counter)
+    unique_span_observations = set()
+    for j in judgments:
+        rater_groups[j.annotator_id].append(j)
+        for span in j.spans:
+            key = (j.annotator_id, span.response_id, span.type, span.start, span.end)
+            if key not in unique_span_observations:
+                span_counts[systems[span.response_id]][span.type] += 1
+                unique_span_observations.add(key)
+    rater_diagnostics = {}
+    for rater, rows in sorted(rater_groups.items()):
+        durations = [j.duration_seconds for j in rows if j.duration_seconds is not None]
+        rater_diagnostics[rater] = {
+            "n_judgments": len(rows), "display_preference_counts": dict(Counter(j.preference for j in rows)),
+            "median_duration_seconds": float(np.median(durations)) if durations else None,
+            "n_timed_judgments": len(durations), "automatic_exclusion": False,
+        }
     return {
-        "schema_version": "0.2",
+        "schema_version": "0.3", "evidence_kind": "human" if evidence == {"human"} else "synthetic_or_mixed",
+        "track": next(iter(tracks)), "systems": system_summary, "contrasts": contrasts,
         "pairwise_model": {
-            "name": "Davidson-Bradley-Terry",
-            "tie_parameter": result.tie_parameter,
-            "converged": result.converged,
-            "iterations": result.iterations,
+            "name": "regularized Davidson-Bradley-Terry", "tie_parameter": result.tie_parameter,
+            "converged": result.converged, "iterations": result.iterations,
+            "gradient_norm": result.gradient_norm, "regularization": result.regularization,
+            "position_adjusted": adjust_position, "position_bias_log_odds": result.position_bias,
+            "comparison_components": components,
         },
-        "systems": system_summary,
+        "uncertainty": {
+            "method": "connected semantic/template cluster percentile bootstrap",
+            "requested_samples": bootstrap_samples, "attempted_samples": effective_samples,
+            "successful_model_samples": effective_samples - skipped, "skipped_model_samples": skipped,
+            "n_independent_groups": len(keys), "seed": seed,
+            "scope": "scenario sampling, conditional on recruited annotators; not population uncertainty",
+        },
         "agreement": {
-            "mean_pair_disagreement_entropy": float(np.mean(disagreement)),
-            "high_disagreement_pair_fraction": float(np.mean(np.array(disagreement) >= 0.75)),
+            "mean_pair_disagreement_entropy": float(np.mean(entropy)) if entropy else None,
+            "mean_pairwise_agreement": float(np.mean(agreements)) if agreements else None,
+            "n_pairs_with_multiple_raters": len(eligible_votes),
+            "conflicting_repeated_actions": action_conflicts,
         },
-        "sample": {
-            "n_judgments": len(judgments),
-            "n_pairs": len(pair_votes),
-            "n_scenarios": len({item.scenario_id for item in judgments}),
-            "n_annotators": len({item.annotator_id for item in judgments}),
-        },
-        "disclaimer": (
-            "These are context-conditioned human preference estimates, not a universal "
-            "human-likeness score. Source detectability is a separate construct."
-        ),
+        "coverage": {"minimum_raters_per_pair": min_raters, "under_annotated_pairs": short,
+                     "n_expected_pairs": len(expected_pair_ids)},
+        "sample": {"n_judgments": len(judgments), "n_pairs": len(pair_votes),
+                   "n_scenarios": len({j.scenario_id for j in judgments}),
+                   "n_annotators": len({j.annotator_id for j in judgments})},
+        "slices": slices, "warnings": warnings, "rater_diagnostics": rater_diagnostics,
+        "problem_spans": {"counts_by_system_and_type": {s: dict(c) for s, c in span_counts.items()},
+                          "interpretation": "Optional flags: counts only, not error prevalence or quality scores."},
+        "disclaimer": "Context-conditioned preference estimates. No universal human-likeness score. "
+                      "Source detection and diagnostic proxies are separate from preference.",
     }

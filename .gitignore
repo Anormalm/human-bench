@@ -8,4 +8,6 @@ dist/
 build/
 results/
 .env
-
+data/private/
+studies/
+*.log

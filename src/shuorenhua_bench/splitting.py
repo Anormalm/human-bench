@@ -70,7 +70,7 @@ def grouped_split(
     for group in ordered:
         group_genres = Counter(scenario_by_id[item].genre for item in group)
 
-        def cost(split: str) -> float:
+        def cost(split: str, group=group, group_genres=group_genres) -> float:
             size_after = len(assignments[split]) + len(group)
             size_cost = size_after / max(targets[split], 1)
             genre_cost = 0.0

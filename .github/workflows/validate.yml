@@ -1,0 +1,24 @@
+name: Benchmark validation
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.10", "3.12"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -r requirements-dev.lock
+      - run: python -m pip install -e . --no-deps
+      - run: python -m ruff check .
+      - run: python -m compileall -q api src scripts
+      - run: python -m pytest -q
+      - run: python scripts/run_demo.py --output studies/ci-demo --bootstrap-samples 100
+      - run: python -m shuorenhua_bench.cli audit --scenarios data/prompts/suite_zh_v0.3.jsonl --splits data/splits/suite_v03.json --output results/ci-audit.json
