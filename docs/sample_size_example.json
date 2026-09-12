@@ -1,0 +1,14 @@
+{
+  "assumptions": "Two-sided normal approximation to binary preference vs .5; equal independent scenario groups, common within-group ICC; no ties. Planning sensitivity only, not power for the Davidson model.",
+  "effect_above_chance": 0.1,
+  "power": 0.8,
+  "familywise_alpha": 0.05,
+  "n_system_contrasts": 6,
+  "assumed_icc": 0.25,
+  "independent_votes_per_contrast_approx": 300,
+  "scenario_groups_per_contrast_approx": 150,
+  "requested_scenarios": 200,
+  "planned_pairs": 1200,
+  "planned_judgments": 3600,
+  "requested_design_meets_approximation": true
+}

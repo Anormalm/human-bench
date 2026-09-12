@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
+from scipy.optimize import minimize
+from scipy.special import logsumexp
 
 
 @dataclass(frozen=True)
@@ -12,83 +14,91 @@ class DavidsonResult:
     converged: bool
     iterations: int
     log_likelihood: float
+    position_bias: float = 0.0
+    regularization: float = 0.01
+    gradient_norm: float = 0.0
+
+
+def comparison_components(comparisons: list[tuple[str, str, str]]) -> list[list[str]]:
+    neighbors: dict[str, set[str]] = {}
+    for a, b, _ in comparisons:
+        neighbors.setdefault(a, set()).add(b)
+        neighbors.setdefault(b, set()).add(a)
+    components = []
+    remaining = set(neighbors)
+    while remaining:
+        pending = [min(remaining)]
+        component = set()
+        while pending:
+            node = pending.pop()
+            if node not in component:
+                component.add(node)
+                pending.extend(neighbors[node] - component)
+        remaining -= component
+        components.append(sorted(component))
+    return components
 
 
 def fit_davidson(
-    comparisons: list[tuple[str, str, str]],
-    *,
-    max_iter: int = 500,
-    learning_rate: float = 0.05,
-    tolerance: float = 1e-8,
+    comparisons: list[tuple[str, str, str]], *, max_iter: int = 500,
+    learning_rate: float = 0.05, tolerance: float = 1e-8,
+    regularization: float = 0.01, fit_position: bool = False,
 ) -> DavidsonResult:
-    """Fit Davidson's tie-aware Bradley–Terry model with Adam gradient ascent.
+    """Penalized Davidson likelihood; a positive position coefficient favors displayed A.
 
-    Each comparison is ``(system_a, system_b, outcome)`` where outcome is A, B, or tie.
-    Abilities are centered to zero for identifiability.
+    The penalty is regularization/2 * ||parameters||^2 on the SUM likelihood.
+    This is a fixed Gaussian regularizer, not a hierarchical population model.
+    learning_rate is retained for compatibility with v0.2 and is unused by L-BFGS.
     """
-    if not comparisons:
-        raise ValueError("at least one comparison is required")
-    names = sorted({name for a, b, _ in comparisons for name in (a, b)})
-    index = {name: i for i, name in enumerate(names)}
-    theta = np.zeros(len(names), dtype=float)
-    log_nu = 0.0
-    m = np.zeros(len(names) + 1)
-    v = np.zeros(len(names) + 1)
-    previous = -np.inf
+    if not comparisons or max_iter < 1 or regularization <= 0:
+        raise ValueError("nonempty comparisons, positive iterations and regularization required")
+    if any(a == b or y not in {"A", "B", "tie"} for a, b, y in comparisons):
+        raise ValueError("comparisons require distinct systems and A/B/tie outcomes")
+    if len(comparison_components(comparisons)) != 1:
+        raise ValueError("disconnected comparison graph: abilities are not globally identifiable")
+    names = sorted({s for a, b, _ in comparisons for s in (a, b)})
+    lookup = {s: i for i, s in enumerate(names)}
+    ia = np.array([lookup[a] for a, _, _ in comparisons])
+    ib = np.array([lookup[b] for _, b, _ in comparisons])
+    targets = np.array([{"A": 0, "B": 1, "tie": 2}[y] for _, _, y in comparisons])
+    n = len(names)
+    observed = np.eye(3)[targets]
 
-    def objective_and_gradient() -> tuple[float, np.ndarray]:
-        gradient = np.zeros(len(names) + 1)
-        objective = 0.0
-        nu = np.exp(log_nu)
-        for a, b, outcome in comparisons:
-            ia, ib = index[a], index[b]
-            wa, wb = np.exp(theta[ia]), np.exp(theta[ib])
-            tie_weight = nu * np.sqrt(wa * wb)
-            denominator = wa + wb + tie_weight
-            probs = np.array([wa, wb, tie_weight]) / denominator
-            target = {"A": 0, "B": 1, "tie": 2}.get(outcome)
-            if target is None:
-                raise ValueError(f"invalid outcome: {outcome}")
-            objective += np.log(max(probs[target], 1e-300))
-            expected_a = probs[0] + 0.5 * probs[2]
-            expected_b = probs[1] + 0.5 * probs[2]
-            observed_a = 1.0 if target == 0 else 0.5 if target == 2 else 0.0
-            observed_b = 1.0 if target == 1 else 0.5 if target == 2 else 0.0
-            gradient[ia] += observed_a - expected_a
-            gradient[ib] += observed_b - expected_b
-            gradient[-1] += (1.0 if target == 2 else 0.0) - probs[2]
-        return objective, gradient
+    def objective(x):
+        a, b = x[ia], x[ib]
+        position = x[n + 1] if fit_position else 0.0
+        logits = np.column_stack((a + position / 2, b - position / 2,
+                                  (a + b) / 2 + x[n]))
+        logs = logits - logsumexp(logits, axis=1, keepdims=True)
+        residual = np.exp(logs) - observed
+        gradient = regularization * x
+        np.add.at(gradient, ia, residual[:, 0] + residual[:, 2] / 2)
+        np.add.at(gradient, ib, residual[:, 1] + residual[:, 2] / 2)
+        gradient[n] += residual[:, 2].sum()
+        if fit_position:
+            gradient[n + 1] += ((residual[:, 0] - residual[:, 1]) / 2).sum()
+        value = -logs[np.arange(len(targets)), targets].sum()
+        return value + regularization / 2 * np.dot(x, x), gradient
 
-    converged = False
-    for iteration in range(1, max_iter + 1):
-        objective, gradient = objective_and_gradient()
-        gradient /= len(comparisons)
-        m = 0.9 * m + 0.1 * gradient
-        v = 0.999 * v + 0.001 * gradient * gradient
-        m_hat = m / (1 - 0.9**iteration)
-        v_hat = v / (1 - 0.999**iteration)
-        update = learning_rate * m_hat / (np.sqrt(v_hat) + 1e-8)
-        theta += update[:-1]
-        theta -= theta.mean()
-        log_nu += update[-1]
-        if abs(objective - previous) < tolerance:
-            converged = True
-            break
-        previous = objective
-    final_objective, _ = objective_and_gradient()
+    result = minimize(objective, np.zeros(n + 1 + int(fit_position)), jac=True,
+                      method="L-BFGS-B", options={"maxiter": max_iter, "ftol": tolerance,
+                                                 "gtol": tolerance})
+    x = result.x
+    abilities = x[:n] - x[:n].mean()
     return DavidsonResult(
-        abilities=dict(zip(names, theta.tolist())),
-        tie_parameter=float(np.exp(log_nu)),
-        converged=converged,
-        iterations=iteration,
-        log_likelihood=float(final_objective),
+        abilities=dict(zip(names, abilities.tolist())), tie_parameter=float(np.exp(x[n])),
+        converged=bool(result.success), iterations=int(result.nit),
+        log_likelihood=float(-result.fun + regularization / 2 * np.dot(x, x)),
+        position_bias=float(x[n + 1]) if fit_position else 0.0,
+        regularization=regularization, gradient_norm=float(np.max(np.abs(result.jac))),
     )
 
 
-def outcome_probabilities(result: DavidsonResult, system_a: str, system_b: str) -> dict[str, float]:
-    wa = np.exp(result.abilities[system_a])
-    wb = np.exp(result.abilities[system_b])
-    tie = result.tie_parameter * np.sqrt(wa * wb)
-    denominator = wa + wb + tie
-    return {"A": float(wa / denominator), "B": float(wb / denominator), "tie": float(tie / denominator)}
-
+def outcome_probabilities(result: DavidsonResult, system_a: str, system_b: str,
+                          *, include_position: bool = False) -> dict[str, float]:
+    a, b = result.abilities[system_a], result.abilities[system_b]
+    position = result.position_bias if include_position else 0.0
+    logits = np.array([a + position / 2, b - position / 2,
+                       (a + b) / 2 + np.log(result.tie_parameter)])
+    p = np.exp(logits - logsumexp(logits))
+    return dict(zip(("A", "B", "tie"), p.tolist()))

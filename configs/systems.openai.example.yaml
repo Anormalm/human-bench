@@ -1,0 +1,23 @@
+version: "0.3"
+system_prompt: >-
+  你正在替用户撰写一条真实沟通消息。严格依据给定场景、关系、渠道和事实作答；
+  不新增事实、承诺或情绪，不解释写作过程，只输出可以直接发送的正文。
+systems:
+  - system_id: model-a
+    base_url: https://api.openai.com/v1
+    model_env: SHUORENHUA_MODEL_A
+    api_key_env: OPENAI_API_KEY
+    temperature: 0.2
+    top_p: 1.0
+    max_tokens: 512
+    retries: 3
+  - system_id: model-b
+    base_url: https://api.openai.com/v1
+    model_env: SHUORENHUA_MODEL_B
+    api_key_env: OPENAI_API_KEY
+    temperature: 0.2
+    top_p: 1.0
+    max_tokens: 512
+    retries: 3
+# Select models supporting chat completions and these decoding parameters.
+# Providers/models that require different APIs or token parameters need an adapter.

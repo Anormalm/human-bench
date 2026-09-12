@@ -12,14 +12,17 @@ from .schemas import Pair, Response
 
 def build_pairs(responses: list[Response], seed: int = 20260827) -> list[Pair]:
     """Create all cross-system pairs per scenario with deterministic A/B counterbalancing."""
-    grouped: dict[str, list[Response]] = defaultdict(list)
+    if len({r.response_id for r in responses}) != len(responses):
+        raise ValueError("response IDs must be unique")
+    grouped: dict[tuple[str, str, str | None], list[Response]] = defaultdict(list)
     for response in responses:
-        grouped[response.scenario_id].append(response)
+        grouped[(response.scenario_id, response.track, response.source_response_id)].append(response)
 
     pairs: list[Pair] = []
     position_balance: dict[str, int] = defaultdict(int)
-    for scenario_id in sorted(grouped):
-        candidates = sorted(grouped[scenario_id], key=lambda item: item.response_id)
+    for group in sorted(grouped, key=str):
+        scenario_id = group[0]
+        candidates = sorted(grouped[group], key=lambda item: item.response_id)
         block = 0
         for left, right in itertools.combinations(candidates, 2):
             if left.system_id == right.system_id:

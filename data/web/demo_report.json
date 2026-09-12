@@ -1,0 +1,1089 @@
+{
+  "schema_version": "0.3",
+  "evidence_kind": "synthetic_or_mixed",
+  "track": "native_generation",
+  "systems": {
+    "fixture-concise": {
+      "ability": 0.8379022445370808,
+      "ability_95ci_cluster_bootstrap": [
+        0.6545270531878132,
+        1.0401909866183605
+      ],
+      "rank_95ci_cluster_bootstrap": [
+        1.0,
+        1.0
+      ],
+      "empirical_preference_rate": 0.7152777777777778,
+      "wins": 176,
+      "ties": 60,
+      "losses": 52,
+      "direct_use_rate": 0.8298611111111112,
+      "direct_use_95ci_cluster_bootstrap": [
+        0.7847222222222222,
+        0.8715277777777778
+      ],
+      "n_direct_use_bootstrap_samples": 1000,
+      "n_unique_response_rater_actions": 288,
+      "action_distribution": {
+        "send": 0.8298611111111112,
+        "revise": 0.09027777777777778,
+        "reject": 0.0798611111111111
+      },
+      "display_position_counts": {
+        "B": 147,
+        "A": 141
+      }
+    },
+    "fixture-overpromise": {
+      "ability": -0.9050058061147513,
+      "ability_95ci_cluster_bootstrap": [
+        -1.1114864838279428,
+        -0.7330458191779502
+      ],
+      "rank_95ci_cluster_bootstrap": [
+        3.0,
+        3.0
+      ],
+      "empirical_preference_rate": 0.2690972222222222,
+      "wins": 49,
+      "ties": 57,
+      "losses": 182,
+      "direct_use_rate": 0.11458333333333333,
+      "direct_use_95ci_cluster_bootstrap": [
+        0.0798611111111111,
+        0.1527777777777778
+      ],
+      "n_direct_use_bootstrap_samples": 1000,
+      "n_unique_response_rater_actions": 288,
+      "action_distribution": {
+        "send": 0.11458333333333333,
+        "revise": 0.4444444444444444,
+        "reject": 0.4409722222222222
+      },
+      "display_position_counts": {
+        "A": 141,
+        "B": 147
+      }
+    },
+    "fixture-padded": {
+      "ability": 0.0671035615776705,
+      "ability_95ci_cluster_bootstrap": [
+        -0.11315197053815945,
+        0.25310752105694384
+      ],
+      "rank_95ci_cluster_bootstrap": [
+        2.0,
+        2.0
+      ],
+      "empirical_preference_rate": 0.515625,
+      "wins": 118,
+      "ties": 61,
+      "losses": 109,
+      "direct_use_rate": 0.3125,
+      "direct_use_95ci_cluster_bootstrap": [
+        0.2569444444444444,
+        0.3680555555555556
+      ],
+      "n_direct_use_bootstrap_samples": 1000,
+      "n_unique_response_rater_actions": 288,
+      "action_distribution": {
+        "send": 0.3125,
+        "revise": 0.3645833333333333,
+        "reject": 0.3229166666666667
+      },
+      "display_position_counts": {
+        "B": 138,
+        "A": 150
+      }
+    }
+  },
+  "contrasts": [
+    {
+      "system_a": "fixture-concise",
+      "system_b": "fixture-overpromise",
+      "counts": {
+        "A": 104,
+        "tie": 28,
+        "B": 12
+      },
+      "neutral_position_probabilities": {
+        "A": 0.6976514049310192,
+        "B": 0.12209647458099548,
+        "tie": 0.18025212048798542
+      },
+      "tie_adjusted_preference_probability_a": 0.7877774651750119,
+      "ability_difference": 1.7429080506518322,
+      "difference_95ci": [
+        1.4189836791603363,
+        2.1013469301672547
+      ],
+      "difference_familywise_95ci_bonferroni_percentile": [
+        1.3723052763536905,
+        2.198848713341637
+      ],
+      "separated_exploratory": true
+    },
+    {
+      "system_a": "fixture-concise",
+      "system_b": "fixture-padded",
+      "counts": {
+        "B": 40,
+        "A": 72,
+        "tie": 32
+      },
+      "neutral_position_probabilities": {
+        "A": 0.5311452525069771,
+        "B": 0.24573085364074715,
+        "tie": 0.22312389385227566
+      },
+      "tie_adjusted_preference_probability_a": 0.6427071994331149,
+      "ability_difference": 0.7707986829594103,
+      "difference_95ci": [
+        0.4782736988443042,
+        1.0973330121972995
+      ],
+      "difference_familywise_95ci_bonferroni_percentile": [
+        0.4229722249568948,
+        1.1730480290512442
+      ],
+      "separated_exploratory": true
+    },
+    {
+      "system_a": "fixture-overpromise",
+      "system_b": "fixture-padded",
+      "counts": {
+        "tie": 29,
+        "B": 78,
+        "A": 37
+      },
+      "neutral_position_probabilities": {
+        "A": 0.2151616207908914,
+        "B": 0.5687829132409666,
+        "tie": 0.21605546596814204
+      },
+      "tie_adjusted_preference_probability_a": 0.32318935377496244,
+      "ability_difference": -0.9721093676924218,
+      "difference_95ci": [
+        -1.3216134478390171,
+        -0.667151580669722
+      ],
+      "difference_familywise_95ci_bonferroni_percentile": [
+        -1.368548199809022,
+        -0.6128730904802429
+      ],
+      "separated_exploratory": true
+    }
+  ],
+  "pairwise_model": {
+    "name": "regularized Davidson-Bradley-Terry",
+    "tie_parameter": 0.6176032656933442,
+    "converged": true,
+    "iterations": 6,
+    "gradient_norm": 0.0002760524919019902,
+    "regularization": 0.01,
+    "position_adjusted": true,
+    "position_bias_log_odds": -0.1888096266303555,
+    "comparison_components": [
+      [
+        "fixture-concise",
+        "fixture-overpromise",
+        "fixture-padded"
+      ]
+    ]
+  },
+  "uncertainty": {
+    "method": "connected semantic/template cluster percentile bootstrap",
+    "requested_samples": 1000,
+    "attempted_samples": 1000,
+    "successful_model_samples": 1000,
+    "skipped_model_samples": 0,
+    "n_independent_groups": 48,
+    "seed": 20260913,
+    "scope": "scenario sampling, conditional on recruited annotators; not population uncertainty"
+  },
+  "agreement": {
+    "mean_pair_disagreement_entropy": 0.5346212115079246,
+    "mean_pairwise_agreement": 0.412037037037037,
+    "n_pairs_with_multiple_raters": 144,
+    "conflicting_repeated_actions": 0
+  },
+  "coverage": {
+    "minimum_raters_per_pair": 3,
+    "under_annotated_pairs": [],
+    "n_expected_pairs": 144
+  },
+  "sample": {
+    "n_judgments": 432,
+    "n_pairs": 144,
+    "n_scenarios": 48,
+    "n_annotators": 12
+  },
+  "slices": {
+    "language": {
+      "zh-CN": {
+        "n_judgments": 432,
+        "n_scenarios": 48,
+        "direct_use": {
+          "fixture-overpromise": {
+            "send": 0.11458333333333333,
+            "revise": 0.4444444444444444,
+            "reject": 0.4409722222222222
+          },
+          "fixture-padded": {
+            "send": 0.3125,
+            "revise": 0.3645833333333333,
+            "reject": 0.3229166666666667
+          },
+          "fixture-concise": {
+            "send": 0.8298611111111112,
+            "revise": 0.09027777777777778,
+            "reject": 0.0798611111111111
+          }
+        }
+      }
+    },
+    "genre": {
+      "academic_message": {
+        "n_judgments": 54,
+        "n_scenarios": 6,
+        "direct_use": {
+          "fixture-padded": {
+            "send": 0.4722222222222222,
+            "revise": 0.2222222222222222,
+            "reject": 0.3055555555555556
+          },
+          "fixture-concise": {
+            "send": 0.8888888888888888,
+            "revise": 0.08333333333333333,
+            "reject": 0.027777777777777776
+          },
+          "fixture-overpromise": {
+            "send": 0.1388888888888889,
+            "revise": 0.3611111111111111,
+            "reject": 0.5
+          }
+        }
+      },
+      "community_notice": {
+        "n_judgments": 54,
+        "n_scenarios": 6,
+        "direct_use": {
+          "fixture-padded": {
+            "send": 0.2777777777777778,
+            "revise": 0.4722222222222222,
+            "reject": 0.25
+          },
+          "fixture-concise": {
+            "send": 0.8055555555555556,
+            "revise": 0.1388888888888889,
+            "reject": 0.05555555555555555
+          },
+          "fixture-overpromise": {
+            "send": 0.1111111111111111,
+            "revise": 0.5277777777777778,
+            "reject": 0.3611111111111111
+          }
+        }
+      },
+      "customer_service": {
+        "n_judgments": 54,
+        "n_scenarios": 6,
+        "direct_use": {
+          "fixture-overpromise": {
+            "send": 0.1111111111111111,
+            "revise": 0.5555555555555556,
+            "reject": 0.3333333333333333
+          },
+          "fixture-padded": {
+            "send": 0.2777777777777778,
+            "revise": 0.3055555555555556,
+            "reject": 0.4166666666666667
+          },
+          "fixture-concise": {
+            "send": 0.8333333333333334,
+            "revise": 0.08333333333333333,
+            "reject": 0.08333333333333333
+          }
+        }
+      },
+      "family_message": {
+        "n_judgments": 54,
+        "n_scenarios": 6,
+        "direct_use": {
+          "fixture-overpromise": {
+            "send": 0.08333333333333333,
+            "revise": 0.4722222222222222,
+            "reject": 0.4444444444444444
+          },
+          "fixture-padded": {
+            "send": 0.2222222222222222,
+            "revise": 0.5277777777777778,
+            "reject": 0.25
+          },
+          "fixture-concise": {
+            "send": 0.7222222222222222,
+            "revise": 0.19444444444444445,
+            "reject": 0.08333333333333333
+          }
+        }
+      },
+      "private_message": {
+        "n_judgments": 54,
+        "n_scenarios": 6,
+        "direct_use": {
+          "fixture-concise": {
+            "send": 0.7777777777777778,
+            "revise": 0.1388888888888889,
+            "reject": 0.08333333333333333
+          },
+          "fixture-padded": {
+            "send": 0.19444444444444445,
+            "revise": 0.4166666666666667,
+            "reject": 0.3888888888888889
+          },
+          "fixture-overpromise": {
+            "send": 0.05555555555555555,
+            "revise": 0.3611111111111111,
+            "reject": 0.5833333333333334
+          }
+        }
+      },
+      "public_post": {
+        "n_judgments": 54,
+        "n_scenarios": 6,
+        "direct_use": {
+          "fixture-padded": {
+            "send": 0.3055555555555556,
+            "revise": 0.3611111111111111,
+            "reject": 0.3333333333333333
+          },
+          "fixture-overpromise": {
+            "send": 0.2222222222222222,
+            "revise": 0.3055555555555556,
+            "reject": 0.4722222222222222
+          },
+          "fixture-concise": {
+            "send": 0.9166666666666666,
+            "revise": 0.027777777777777776,
+            "reject": 0.05555555555555555
+          }
+        }
+      },
+      "technical_explanation": {
+        "n_judgments": 54,
+        "n_scenarios": 6,
+        "direct_use": {
+          "fixture-overpromise": {
+            "send": 0.05555555555555555,
+            "revise": 0.5277777777777778,
+            "reject": 0.4166666666666667
+          },
+          "fixture-padded": {
+            "send": 0.3888888888888889,
+            "revise": 0.25,
+            "reject": 0.3611111111111111
+          },
+          "fixture-concise": {
+            "send": 0.9166666666666666,
+            "revise": 0.0,
+            "reject": 0.08333333333333333
+          }
+        }
+      },
+      "workplace_message": {
+        "n_judgments": 54,
+        "n_scenarios": 6,
+        "direct_use": {
+          "fixture-padded": {
+            "send": 0.3611111111111111,
+            "revise": 0.3611111111111111,
+            "reject": 0.2777777777777778
+          },
+          "fixture-concise": {
+            "send": 0.7777777777777778,
+            "revise": 0.05555555555555555,
+            "reject": 0.16666666666666666
+          },
+          "fixture-overpromise": {
+            "send": 0.1388888888888889,
+            "revise": 0.4444444444444444,
+            "reject": 0.4166666666666667
+          }
+        }
+      }
+    },
+    "relationship": {
+      "client": {
+        "n_judgments": 9,
+        "n_scenarios": 1,
+        "direct_use": {
+          "fixture-padded": {
+            "send": 0.8333333333333334,
+            "revise": 0.16666666666666666,
+            "reject": 0.0
+          },
+          "fixture-concise": {
+            "send": 1.0,
+            "revise": 0.0,
+            "reject": 0.0
+          },
+          "fixture-overpromise": {
+            "send": 0.16666666666666666,
+            "revise": 0.16666666666666666,
+            "reject": 0.6666666666666666
+          }
+        }
+      },
+      "colleague": {
+        "n_judgments": 27,
+        "n_scenarios": 3,
+        "direct_use": {
+          "fixture-padded": {
+            "send": 0.3888888888888889,
+            "revise": 0.3333333333333333,
+            "reject": 0.2777777777777778
+          },
+          "fixture-concise": {
+            "send": 0.7222222222222222,
+            "revise": 0.1111111111111111,
+            "reject": 0.16666666666666666
+          },
+          "fixture-overpromise": {
+            "send": 0.05555555555555555,
+            "revise": 0.4444444444444444,
+            "reject": 0.5
+          }
+        }
+      },
+      "customer": {
+        "n_judgments": 54,
+        "n_scenarios": 6,
+        "direct_use": {
+          "fixture-overpromise": {
+            "send": 0.1111111111111111,
+            "revise": 0.5555555555555556,
+            "reject": 0.3333333333333333
+          },
+          "fixture-padded": {
+            "send": 0.2777777777777778,
+            "revise": 0.3055555555555556,
+            "reject": 0.4166666666666667
+          },
+          "fixture-concise": {
+            "send": 0.8333333333333334,
+            "revise": 0.08333333333333333,
+            "reject": 0.08333333333333333
+          }
+        }
+      },
+      "friend": {
+        "n_judgments": 54,
+        "n_scenarios": 6,
+        "direct_use": {
+          "fixture-concise": {
+            "send": 0.7777777777777778,
+            "revise": 0.1388888888888889,
+            "reject": 0.08333333333333333
+          },
+          "fixture-padded": {
+            "send": 0.19444444444444445,
+            "revise": 0.4166666666666667,
+            "reject": 0.3888888888888889
+          },
+          "fixture-overpromise": {
+            "send": 0.05555555555555555,
+            "revise": 0.3611111111111111,
+            "reject": 0.5833333333333334
+          }
+        }
+      },
+      "grandparent": {
+        "n_judgments": 9,
+        "n_scenarios": 1,
+        "direct_use": {
+          "fixture-padded": {
+            "send": 0.16666666666666666,
+            "revise": 0.3333333333333333,
+            "reject": 0.5
+          },
+          "fixture-concise": {
+            "send": 0.8333333333333334,
+            "revise": 0.16666666666666666,
+            "reject": 0.0
+          },
+          "fixture-overpromise": {
+            "send": 0.3333333333333333,
+            "revise": 0.3333333333333333,
+            "reject": 0.3333333333333333
+          }
+        }
+      },
+      "instructor": {
+        "n_judgments": 27,
+        "n_scenarios": 3,
+        "direct_use": {
+          "fixture-padded": {
+            "send": 0.4444444444444444,
+            "revise": 0.1111111111111111,
+            "reject": 0.4444444444444444
+          },
+          "fixture-concise": {
+            "send": 0.8333333333333334,
+            "revise": 0.1111111111111111,
+            "reject": 0.05555555555555555
+          },
+          "fixture-overpromise": {
+            "send": 0.1111111111111111,
+            "revise": 0.4444444444444444,
+            "reject": 0.4444444444444444
+          }
+        }
+      },
+      "manager": {
+        "n_judgments": 18,
+        "n_scenarios": 2,
+        "direct_use": {
+          "fixture-concise": {
+            "send": 0.75,
+            "revise": 0.0,
+            "reject": 0.25
+          },
+          "fixture-overpromise": {
+            "send": 0.25,
+            "revise": 0.5833333333333334,
+            "reject": 0.16666666666666666
+          },
+          "fixture-padded": {
+            "send": 0.08333333333333333,
+            "revise": 0.5,
+            "reject": 0.4166666666666667
+          }
+        }
+      },
+      "neighbor": {
+        "n_judgments": 18,
+        "n_scenarios": 2,
+        "direct_use": {
+          "fixture-padded": {
+            "send": 0.16666666666666666,
+            "revise": 0.5833333333333334,
+            "reject": 0.25
+          },
+          "fixture-overpromise": {
+            "send": 0.08333333333333333,
+            "revise": 0.6666666666666666,
+            "reject": 0.25
+          },
+          "fixture-concise": {
+            "send": 0.8333333333333334,
+            "revise": 0.16666666666666666,
+            "reject": 0.0
+          }
+        }
+      },
+      "neighbors": {
+        "n_judgments": 18,
+        "n_scenarios": 2,
+        "direct_use": {
+          "fixture-padded": {
+            "send": 0.3333333333333333,
+            "revise": 0.4166666666666667,
+            "reject": 0.25
+          },
+          "fixture-concise": {
+            "send": 0.9166666666666666,
+            "revise": 0.0,
+            "reject": 0.08333333333333333
+          },
+          "fixture-overpromise": {
+            "send": 0.16666666666666666,
+            "revise": 0.5,
+            "reject": 0.3333333333333333
+          }
+        }
+      },
+      "nontechnical_user": {
+        "n_judgments": 27,
+        "n_scenarios": 3,
+        "direct_use": {
+          "fixture-overpromise": {
+            "send": 0.1111111111111111,
+            "revise": 0.5,
+            "reject": 0.3888888888888889
+          },
+          "fixture-padded": {
+            "send": 0.4444444444444444,
+            "revise": 0.2777777777777778,
+            "reject": 0.2777777777777778
+          },
+          "fixture-concise": {
+            "send": 0.9444444444444444,
+            "revise": 0.0,
+            "reject": 0.05555555555555555
+          }
+        }
+      },
+      "parent": {
+        "n_judgments": 27,
+        "n_scenarios": 3,
+        "direct_use": {
+          "fixture-overpromise": {
+            "send": 0.0,
+            "revise": 0.5,
+            "reject": 0.5
+          },
+          "fixture-padded": {
+            "send": 0.3333333333333333,
+            "revise": 0.3888888888888889,
+            "reject": 0.2777777777777778
+          },
+          "fixture-concise": {
+            "send": 0.8333333333333334,
+            "revise": 0.16666666666666666,
+            "reject": 0.0
+          }
+        }
+      },
+      "partner": {
+        "n_judgments": 9,
+        "n_scenarios": 1,
+        "direct_use": {
+          "fixture-concise": {
+            "send": 0.3333333333333333,
+            "revise": 0.16666666666666666,
+            "reject": 0.5
+          },
+          "fixture-overpromise": {
+            "send": 0.0,
+            "revise": 0.5,
+            "reject": 0.5
+          },
+          "fixture-padded": {
+            "send": 0.0,
+            "revise": 0.8333333333333334,
+            "reject": 0.16666666666666666
+          }
+        }
+      },
+      "public": {
+        "n_judgments": 54,
+        "n_scenarios": 6,
+        "direct_use": {
+          "fixture-padded": {
+            "send": 0.3055555555555556,
+            "revise": 0.3611111111111111,
+            "reject": 0.3333333333333333
+          },
+          "fixture-overpromise": {
+            "send": 0.2222222222222222,
+            "revise": 0.3055555555555556,
+            "reject": 0.4722222222222222
+          },
+          "fixture-concise": {
+            "send": 0.9166666666666666,
+            "revise": 0.027777777777777776,
+            "reject": 0.05555555555555555
+          }
+        }
+      },
+      "sibling": {
+        "n_judgments": 9,
+        "n_scenarios": 1,
+        "direct_use": {
+          "fixture-overpromise": {
+            "send": 0.16666666666666666,
+            "revise": 0.5,
+            "reject": 0.3333333333333333
+          },
+          "fixture-concise": {
+            "send": 0.6666666666666666,
+            "revise": 0.3333333333333333,
+            "reject": 0.0
+          },
+          "fixture-padded": {
+            "send": 0.16666666666666666,
+            "revise": 0.8333333333333334,
+            "reject": 0.0
+          }
+        }
+      },
+      "student_peer": {
+        "n_judgments": 27,
+        "n_scenarios": 3,
+        "direct_use": {
+          "fixture-concise": {
+            "send": 0.9444444444444444,
+            "revise": 0.05555555555555555,
+            "reject": 0.0
+          },
+          "fixture-overpromise": {
+            "send": 0.16666666666666666,
+            "revise": 0.2777777777777778,
+            "reject": 0.5555555555555556
+          },
+          "fixture-padded": {
+            "send": 0.5,
+            "revise": 0.3333333333333333,
+            "reject": 0.16666666666666666
+          }
+        }
+      },
+      "teammate": {
+        "n_judgments": 27,
+        "n_scenarios": 3,
+        "direct_use": {
+          "fixture-overpromise": {
+            "send": 0.0,
+            "revise": 0.5555555555555556,
+            "reject": 0.4444444444444444
+          },
+          "fixture-padded": {
+            "send": 0.3333333333333333,
+            "revise": 0.2222222222222222,
+            "reject": 0.4444444444444444
+          },
+          "fixture-concise": {
+            "send": 0.8888888888888888,
+            "revise": 0.0,
+            "reject": 0.1111111111111111
+          }
+        }
+      },
+      "volunteer": {
+        "n_judgments": 18,
+        "n_scenarios": 2,
+        "direct_use": {
+          "fixture-overpromise": {
+            "send": 0.08333333333333333,
+            "revise": 0.4166666666666667,
+            "reject": 0.5
+          },
+          "fixture-padded": {
+            "send": 0.3333333333333333,
+            "revise": 0.4166666666666667,
+            "reject": 0.25
+          },
+          "fixture-concise": {
+            "send": 0.6666666666666666,
+            "revise": 0.25,
+            "reject": 0.08333333333333333
+          }
+        }
+      }
+    },
+    "intent": {
+      "apologize": {
+        "n_judgments": 36,
+        "n_scenarios": 4,
+        "direct_use": {
+          "fixture-concise": {
+            "send": 0.7083333333333334,
+            "revise": 0.08333333333333333,
+            "reject": 0.20833333333333334
+          },
+          "fixture-overpromise": {
+            "send": 0.08333333333333333,
+            "revise": 0.5,
+            "reject": 0.4166666666666667
+          },
+          "fixture-padded": {
+            "send": 0.2916666666666667,
+            "revise": 0.4166666666666667,
+            "reject": 0.2916666666666667
+          }
+        }
+      },
+      "comfort": {
+        "n_judgments": 9,
+        "n_scenarios": 1,
+        "direct_use": {
+          "fixture-padded": {
+            "send": 0.3333333333333333,
+            "revise": 0.3333333333333333,
+            "reject": 0.3333333333333333
+          },
+          "fixture-overpromise": {
+            "send": 0.16666666666666666,
+            "revise": 0.16666666666666666,
+            "reject": 0.6666666666666666
+          },
+          "fixture-concise": {
+            "send": 0.6666666666666666,
+            "revise": 0.0,
+            "reject": 0.3333333333333333
+          }
+        }
+      },
+      "correct": {
+        "n_judgments": 72,
+        "n_scenarios": 8,
+        "direct_use": {
+          "fixture-padded": {
+            "send": 0.3333333333333333,
+            "revise": 0.3125,
+            "reject": 0.3541666666666667
+          },
+          "fixture-concise": {
+            "send": 0.9166666666666666,
+            "revise": 0.020833333333333332,
+            "reject": 0.0625
+          },
+          "fixture-overpromise": {
+            "send": 0.020833333333333332,
+            "revise": 0.4583333333333333,
+            "reject": 0.5208333333333334
+          }
+        }
+      },
+      "explain": {
+        "n_judgments": 81,
+        "n_scenarios": 9,
+        "direct_use": {
+          "fixture-overpromise": {
+            "send": 0.18518518518518517,
+            "revise": 0.48148148148148145,
+            "reject": 0.3333333333333333
+          },
+          "fixture-padded": {
+            "send": 0.4444444444444444,
+            "revise": 0.24074074074074073,
+            "reject": 0.3148148148148148
+          },
+          "fixture-concise": {
+            "send": 0.8518518518518519,
+            "revise": 0.05555555555555555,
+            "reject": 0.09259259259259259
+          }
+        }
+      },
+      "refuse": {
+        "n_judgments": 72,
+        "n_scenarios": 8,
+        "direct_use": {
+          "fixture-overpromise": {
+            "send": 0.10416666666666667,
+            "revise": 0.3958333333333333,
+            "reject": 0.5
+          },
+          "fixture-padded": {
+            "send": 0.3541666666666667,
+            "revise": 0.375,
+            "reject": 0.2708333333333333
+          },
+          "fixture-concise": {
+            "send": 0.875,
+            "revise": 0.041666666666666664,
+            "reject": 0.08333333333333333
+          }
+        }
+      },
+      "request": {
+        "n_judgments": 72,
+        "n_scenarios": 8,
+        "direct_use": {
+          "fixture-overpromise": {
+            "send": 0.125,
+            "revise": 0.3958333333333333,
+            "reject": 0.4791666666666667
+          },
+          "fixture-concise": {
+            "send": 0.8125,
+            "revise": 0.16666666666666666,
+            "reject": 0.020833333333333332
+          },
+          "fixture-padded": {
+            "send": 0.22916666666666666,
+            "revise": 0.4375,
+            "reject": 0.3333333333333333
+          }
+        }
+      },
+      "respond": {
+        "n_judgments": 72,
+        "n_scenarios": 8,
+        "direct_use": {
+          "fixture-overpromise": {
+            "send": 0.08333333333333333,
+            "revise": 0.5208333333333334,
+            "reject": 0.3958333333333333
+          },
+          "fixture-padded": {
+            "send": 0.22916666666666666,
+            "revise": 0.4375,
+            "reject": 0.3333333333333333
+          },
+          "fixture-concise": {
+            "send": 0.7916666666666666,
+            "revise": 0.14583333333333334,
+            "reject": 0.0625
+          }
+        }
+      },
+      "thank": {
+        "n_judgments": 18,
+        "n_scenarios": 2,
+        "direct_use": {
+          "fixture-concise": {
+            "send": 0.75,
+            "revise": 0.25,
+            "reject": 0.0
+          },
+          "fixture-overpromise": {
+            "send": 0.3333333333333333,
+            "revise": 0.3333333333333333,
+            "reject": 0.3333333333333333
+          },
+          "fixture-padded": {
+            "send": 0.16666666666666666,
+            "revise": 0.4166666666666667,
+            "reject": 0.4166666666666667
+          }
+        }
+      }
+    }
+  },
+  "warnings": [
+    "SYNTHETIC evidence is present: this report is a software demonstration."
+  ],
+  "rater_diagnostics": {
+    "rater-001": {
+      "n_judgments": 36,
+      "display_preference_counts": {
+        "tie": 6,
+        "B": 20,
+        "A": 10
+      },
+      "median_duration_seconds": 30.0,
+      "n_timed_judgments": 36,
+      "automatic_exclusion": false
+    },
+    "rater-002": {
+      "n_judgments": 35,
+      "display_preference_counts": {
+        "B": 18,
+        "A": 9,
+        "tie": 8
+      },
+      "median_duration_seconds": 30.0,
+      "n_timed_judgments": 35,
+      "automatic_exclusion": false
+    },
+    "rater-003": {
+      "n_judgments": 36,
+      "display_preference_counts": {
+        "tie": 9,
+        "A": 13,
+        "B": 14
+      },
+      "median_duration_seconds": 30.0,
+      "n_timed_judgments": 36,
+      "automatic_exclusion": false
+    },
+    "rater-004": {
+      "n_judgments": 36,
+      "display_preference_counts": {
+        "A": 14,
+        "B": 13,
+        "tie": 9
+      },
+      "median_duration_seconds": 30.0,
+      "n_timed_judgments": 36,
+      "automatic_exclusion": false
+    },
+    "rater-005": {
+      "n_judgments": 36,
+      "display_preference_counts": {
+        "A": 17,
+        "B": 12,
+        "tie": 7
+      },
+      "median_duration_seconds": 30.0,
+      "n_timed_judgments": 36,
+      "automatic_exclusion": false
+    },
+    "rater-006": {
+      "n_judgments": 37,
+      "display_preference_counts": {
+        "B": 18,
+        "tie": 4,
+        "A": 15
+      },
+      "median_duration_seconds": 30.0,
+      "n_timed_judgments": 37,
+      "automatic_exclusion": false
+    },
+    "rater-007": {
+      "n_judgments": 36,
+      "display_preference_counts": {
+        "B": 18,
+        "A": 8,
+        "tie": 10
+      },
+      "median_duration_seconds": 30.0,
+      "n_timed_judgments": 36,
+      "automatic_exclusion": false
+    },
+    "rater-008": {
+      "n_judgments": 37,
+      "display_preference_counts": {
+        "B": 11,
+        "A": 18,
+        "tie": 8
+      },
+      "median_duration_seconds": 30.0,
+      "n_timed_judgments": 37,
+      "automatic_exclusion": false
+    },
+    "rater-009": {
+      "n_judgments": 36,
+      "display_preference_counts": {
+        "A": 16,
+        "B": 17,
+        "tie": 3
+      },
+      "median_duration_seconds": 30.0,
+      "n_timed_judgments": 36,
+      "automatic_exclusion": false
+    },
+    "rater-010": {
+      "n_judgments": 36,
+      "display_preference_counts": {
+        "A": 12,
+        "B": 17,
+        "tie": 7
+      },
+      "median_duration_seconds": 30.0,
+      "n_timed_judgments": 36,
+      "automatic_exclusion": false
+    },
+    "rater-011": {
+      "n_judgments": 35,
+      "display_preference_counts": {
+        "B": 13,
+        "tie": 11,
+        "A": 11
+      },
+      "median_duration_seconds": 30.0,
+      "n_timed_judgments": 35,
+      "automatic_exclusion": false
+    },
+    "rater-012": {
+      "n_judgments": 36,
+      "display_preference_counts": {
+        "A": 16,
+        "tie": 7,
+        "B": 13
+      },
+      "median_duration_seconds": 30.0,
+      "n_timed_judgments": 36,
+      "automatic_exclusion": false
+    }
+  },
+  "problem_spans": {
+    "counts_by_system_and_type": {},
+    "interpretation": "Optional flags: counts only, not error prevalence or quality scores."
+  },
+  "disclaimer": "Context-conditioned preference estimates. No universal human-likeness score. Source detection and diagnostic proxies are separate from preference.",
+  "study_id": "study-dbe136509969cb52",
+  "demo_data_generation": "Simulated labels from declared fixture strengths; no human raters."
+}

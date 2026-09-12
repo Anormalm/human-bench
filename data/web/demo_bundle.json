@@ -1,29 +1,802 @@
 {
-  "schema_version": "0.2",
-  "created_at": "2026-08-28T07:00:13.609519+00:00",
-  "n_pairs": 1,
+  "schema_version": "0.3",
+  "study_id": "study-dbe136509969cb52",
+  "bundle_id": "148b53469a8ee74e6abf4e8fc56fe50bfa9c2963778a8c3d3764ece26a14994b",
+  "created_at": "2026-09-12T17:00:42.219044+00:00",
+  "n_pairs": 36,
   "items": [
     {
-      "pair_id": "pair-8a7e6518d5a8e8ac",
-      "scenario_id": "zh-work-001",
+      "scenario_id": "zh-challenge-034",
       "language": "zh-CN",
-      "genre": "workplace_message",
-      "relationship": "colleague",
+      "genre": "technical_explanation",
+      "relationship": "teammate",
       "intent": "explain",
-      "channel": "wechat_private",
-      "context": "你答应周五把两张结果图发给同事，但实验还没跑完。",
-      "instruction": "向同事解释延期，并提出新的明确时间。",
+      "channel": "private_message",
+      "context": "测试只在一百条样本上跑过，没有发现错误，你不能证明系统没有缺陷。",
+      "instruction": "写一条简短测试结论。",
       "required_facts": [
-        "两张结果图",
-        "周一下午"
+        "一百条样本",
+        "未发现错误"
       ],
       "prohibited_changes": [
-        "不要声称实验已经完成"
+        "不得宣称零缺陷或全面验证"
       ],
-      "response_a": "zh-work-001-concise",
-      "response_b": "zh-work-001-formulaic",
-      "response_a_text": "抱歉，实验还没跑完，两张结果图周五发不了了。我周末补完，周一下午发你，可以吗？",
-      "response_b_text": "非常抱歉给你带来不便。由于实验尚未完成，我无法按原计划于周五提供两张结果图。我计划在周末完成相关工作，并于周一下午发送。感谢理解。"
+      "pair_id": "pair-9927bb4938887696",
+      "response_a": "r-54b19c018eb0afc4dda0fd62",
+      "response_b": "r-43d09396bc562947255707f0",
+      "response_a_text": "这次测试覆盖了一百条样本，未发现错误；还不能据此确认系统没有其他缺陷。请您放心，我保证所有相关问题都一定能得到彻底解决。",
+      "response_b_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。这次测试覆盖了一百条样本，未发现错误；还不能据此确认系统没有其他缺陷。希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。"
+    },
+    {
+      "scenario_id": "zh-challenge-035",
+      "language": "zh-CN",
+      "genre": "technical_explanation",
+      "relationship": "nontechnical_user",
+      "intent": "refuse",
+      "channel": "private_message",
+      "context": "用户想让你保证恢复一个已经损坏且没有备份的文件。你只能尝试，结果未知。",
+      "instruction": "说明可以尝试但无法保证。",
+      "required_facts": [
+        "文件损坏",
+        "没有备份",
+        "结果未知"
+      ],
+      "prohibited_changes": [
+        "不得保证百分之百恢复"
+      ],
+      "pair_id": "pair-3ebbce820a16622b",
+      "response_a": "r-705e04a87455a44b88d09bd2",
+      "response_b": "r-fde6ae8c2cb87711cbe11ab6",
+      "response_a_text": "可以尝试恢复，但文件已经损坏，也没有备份，目前没法保证能找回来。请您放心，我保证所有相关问题都一定能得到彻底解决。",
+      "response_b_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。可以尝试恢复，但文件已经损坏，也没有备份，目前没法保证能找回来。希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。"
+    },
+    {
+      "scenario_id": "zh-challenge-039",
+      "language": "zh-CN",
+      "genre": "academic_message",
+      "relationship": "instructor",
+      "intent": "explain",
+      "channel": "private_message",
+      "context": "你的实验设备故障导致今天没有新数据，维修人员预计周四检查但未保证修好。",
+      "instruction": "汇报进度和下一步，不夸大维修确定性。",
+      "required_facts": [
+        "设备故障",
+        "今天无新数据",
+        "周四检查"
+      ],
+      "prohibited_changes": [
+        "不得保证周四恢复"
+      ],
+      "pair_id": "pair-34dddfe3e2ca005b",
+      "response_a": "r-7f3a51c5a0c1cbfac3916f35",
+      "response_b": "r-a162c125e59b0221bbd5a09b",
+      "response_a_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。今天设备故障，没有产生新数据。维修人员预计周四来检查，能否当天修好还不确定。希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。",
+      "response_b_text": "今天设备故障，没有产生新数据。维修人员预计周四来检查，能否当天修好还不确定。"
+    },
+    {
+      "scenario_id": "zh-challenge-026",
+      "language": "zh-CN",
+      "genre": "community_notice",
+      "relationship": "neighbors",
+      "intent": "explain",
+      "channel": "group_chat",
+      "context": "物业通知周六九点到十一点停水，仅影响三号楼。",
+      "instruction": "写群通知，准确保留时间和范围。",
+      "required_facts": [
+        "周六九点到十一点",
+        "三号楼停水"
+      ],
+      "prohibited_changes": [
+        "不得写成整个小区停水"
+      ],
+      "pair_id": "pair-97d1ee21668f68fc",
+      "response_a": "r-7408f27dc27c186ac301be20",
+      "response_b": "r-55718ac2cec799cb4db12d35",
+      "response_a_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。提醒三号楼的邻居：周六九点到十一点停水，请提前安排用水。希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。",
+      "response_b_text": "提醒三号楼的邻居：周六九点到十一点停水，请提前安排用水。"
+    },
+    {
+      "scenario_id": "zh-challenge-018",
+      "language": "zh-CN",
+      "genre": "family_message",
+      "relationship": "parent",
+      "intent": "respond",
+      "channel": "private_message",
+      "context": "爸爸发了一张做好的晚饭照片，说今天做了你喜欢的番茄炒蛋。",
+      "instruction": "用温暖但不夸张的一句话回复。",
+      "required_facts": [
+        "番茄炒蛋"
+      ],
+      "prohibited_changes": [
+        "不要声称已经吃到或知道味道"
+      ],
+      "pair_id": "pair-32b735e487d10d98",
+      "response_a": "r-b8fca4ba2bee3aba0e5e0e9a",
+      "response_b": "r-aafed55d302483cac0737943",
+      "response_a_text": "看到番茄炒蛋就想回家吃饭了。请您放心，我保证所有相关问题都一定能得到彻底解决。",
+      "response_b_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。看到番茄炒蛋就想回家吃饭了。希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。"
+    },
+    {
+      "scenario_id": "zh-challenge-003",
+      "language": "zh-CN",
+      "genre": "workplace_message",
+      "relationship": "client",
+      "intent": "explain",
+      "channel": "private_message",
+      "context": "客户问周三能否交付。目前还差第三方确认，你只能在周二下午更新进度。",
+      "instruction": "回复客户，区分更新进度和保证交付。",
+      "required_facts": [
+        "周二下午更新进度",
+        "等待第三方确认"
+      ],
+      "prohibited_changes": [
+        "不得保证周三交付"
+      ],
+      "pair_id": "pair-4582bf5e9cef2b22",
+      "response_a": "r-7565829afe5baedb31ad102f",
+      "response_b": "r-c9362dba70739fbbd24c7e21",
+      "response_a_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。还在等第三方确认，现在不能保证周三交付。我周二下午会再向您更新进度。希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。",
+      "response_b_text": "还在等第三方确认，现在不能保证周三交付。我周二下午会再向您更新进度。"
+    },
+    {
+      "scenario_id": "zh-challenge-017",
+      "language": "zh-CN",
+      "genre": "family_message",
+      "relationship": "partner",
+      "intent": "apologize",
+      "channel": "private_message",
+      "context": "你答应洗碗却忘了，伴侣已经洗完。你现在想承认疏忽。",
+      "instruction": "承认具体问题，不把补偿变成宏大承诺。",
+      "required_facts": [
+        "忘了洗碗",
+        "对方已经洗完"
+      ],
+      "prohibited_changes": [
+        "不得承诺以后绝不再犯"
+      ],
+      "pair_id": "pair-e41ca714f658c4d7",
+      "response_a": "r-7ea52f1aa8b832287640c37d",
+      "response_b": "r-1e4146e423add4b39cf6ca47",
+      "response_a_text": "说好我洗碗的，结果我忘了，还让你洗了。抱歉，这次是我没做好。",
+      "response_b_text": "说好我洗碗的，结果我忘了，还让你洗了。抱歉，这次是我没做好。请您放心，我保证所有相关问题都一定能得到彻底解决。"
+    },
+    {
+      "scenario_id": "zh-challenge-007",
+      "language": "zh-CN",
+      "genre": "private_message",
+      "relationship": "friend",
+      "intent": "refuse",
+      "channel": "private_message",
+      "context": "朋友第三次邀请你玩剧本杀，你只是对这个活动没兴趣，仍愿意见他。",
+      "instruction": "清楚拒绝活动，提出吃饭作为选择。",
+      "required_facts": [
+        "不想玩剧本杀",
+        "愿意一起吃饭"
+      ],
+      "prohibited_changes": [
+        "不要编造加班或生病"
+      ],
+      "pair_id": "pair-8436a92b5d9724e1",
+      "response_a": "r-50cb741b69e17a0564f0f1a2",
+      "response_b": "r-16431a109dff6ea1fd9965a7",
+      "response_a_text": "剧本杀我就不去啦，我确实不太感兴趣。我们可以另约个时间吃饭。",
+      "response_b_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。剧本杀我就不去啦，我确实不太感兴趣。我们可以另约个时间吃饭。希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。"
+    },
+    {
+      "scenario_id": "zh-challenge-030",
+      "language": "zh-CN",
+      "genre": "community_notice",
+      "relationship": "neighbor",
+      "intent": "respond",
+      "channel": "group_chat",
+      "context": "邻居问捡到的黑色雨伞是不是你的，你丢的是蓝色。",
+      "instruction": "简短说明不是你的。",
+      "required_facts": [
+        "丢的是蓝色雨伞"
+      ],
+      "prohibited_changes": [
+        "不要索要黑色雨伞"
+      ],
+      "pair_id": "pair-8f5150764809ceea",
+      "response_a": "r-486ae2da23830a09ca437525",
+      "response_b": "r-fe86624ec1cf13fc87008dda",
+      "response_a_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。不是我的，我丢的是蓝色那把。谢谢你帮忙问！希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。",
+      "response_b_text": "不是我的，我丢的是蓝色那把。谢谢你帮忙问！请您放心，我保证所有相关问题都一定能得到彻底解决。"
+    },
+    {
+      "scenario_id": "zh-challenge-046",
+      "language": "zh-CN",
+      "genre": "public_post",
+      "relationship": "public",
+      "intent": "refuse",
+      "channel": "public_feed",
+      "context": "有人在公开评论区问你的住址，你不愿透露，也不想引发争论。",
+      "instruction": "礼貌而明确地拒绝透露住址。",
+      "required_facts": [
+        "不公开住址"
+      ],
+      "prohibited_changes": [
+        "不得提供虚构住址"
+      ],
+      "pair_id": "pair-b0f2bbccb3a9036b",
+      "response_a": "r-f64f7c7846b1d9b0d79b89b6",
+      "response_b": "r-8ff9162620bfb5ca8ef0c570",
+      "response_a_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。住址属于个人信息，就不在这里公开了，谢谢理解。希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。",
+      "response_b_text": "住址属于个人信息，就不在这里公开了，谢谢理解。请您放心，我保证所有相关问题都一定能得到彻底解决。"
+    },
+    {
+      "scenario_id": "zh-challenge-036",
+      "language": "zh-CN",
+      "genre": "technical_explanation",
+      "relationship": "teammate",
+      "intent": "respond",
+      "channel": "private_message",
+      "context": "同事问部署是否成功，构建通过但健康检查还在进行。",
+      "instruction": "区分构建完成和服务验证状态。",
+      "required_facts": [
+        "构建通过",
+        "健康检查进行中"
+      ],
+      "prohibited_changes": [
+        "不得直接宣布部署成功"
+      ],
+      "pair_id": "pair-9347fbdef8fc6ef4",
+      "response_a": "r-bdb0fafd6b4b33606958b44a",
+      "response_b": "r-d692f80c994b630e5661ac63",
+      "response_a_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。构建已经通过，健康检查还在跑，等检查完成再确认部署结果。希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。",
+      "response_b_text": "构建已经通过，健康检查还在跑，等检查完成再确认部署结果。"
+    },
+    {
+      "scenario_id": "zh-challenge-012",
+      "language": "zh-CN",
+      "genre": "private_message",
+      "relationship": "friend",
+      "intent": "explain",
+      "channel": "private_message",
+      "context": "朋友误以为你没回复是在生气，其实你刚开完会，没看手机。",
+      "instruction": "说明原因，不把正常延迟回复说成严重过错。",
+      "required_facts": [
+        "刚开完会",
+        "之前没看手机"
+      ],
+      "prohibited_changes": [
+        "不要编造手机没电"
+      ],
+      "pair_id": "pair-72534cfe6250270d",
+      "response_a": "r-f778bdcf7a063bbc9e0ece59",
+      "response_b": "r-ac2ab007ddfb0ebaaad7c179",
+      "response_a_text": "没有生气啦，我刚开完会，之前没看手机。请您放心，我保证所有相关问题都一定能得到彻底解决。",
+      "response_b_text": "没有生气啦，我刚开完会，之前没看手机。"
+    },
+    {
+      "scenario_id": "zh-challenge-014",
+      "language": "zh-CN",
+      "genre": "family_message",
+      "relationship": "sibling",
+      "intent": "request",
+      "channel": "private_message",
+      "context": "弟弟帮你收了快递，你需要确认盒子上有没有易碎标签。",
+      "instruction": "问一个具体问题，不要求他拆包。",
+      "required_facts": [
+        "确认易碎标签"
+      ],
+      "prohibited_changes": [
+        "不得要求拆包检查"
+      ],
+      "pair_id": "pair-1d3556d935fe1b50",
+      "response_a": "r-bb109ed64779226c123b09e1",
+      "response_b": "r-10b30aa4251fa35578d8c524",
+      "response_a_text": "帮我看一下盒子上有没有易碎标签就好，不用拆。请您放心，我保证所有相关问题都一定能得到彻底解决。",
+      "response_b_text": "帮我看一下盒子上有没有易碎标签就好，不用拆。"
+    },
+    {
+      "scenario_id": "zh-challenge-045",
+      "language": "zh-CN",
+      "genre": "public_post",
+      "relationship": "public",
+      "intent": "request",
+      "channel": "public_feed",
+      "context": "你要招募五位志愿者周六下午整理旧书，地点在社区活动室，没有报酬。",
+      "instruction": "写清时间、地点、人数和无偿性质。",
+      "required_facts": [
+        "五位",
+        "周六下午",
+        "社区活动室",
+        "无偿"
+      ],
+      "prohibited_changes": [
+        "不得暗示提供报酬"
+      ],
+      "pair_id": "pair-6a721c1b20811757",
+      "response_a": "r-a23433a28c6a2c96d9043a9d",
+      "response_b": "r-b3e5312db927f0425acc1622",
+      "response_a_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。招募五位志愿者，周六下午在社区活动室一起整理旧书。本次为无偿志愿活动，欢迎有空的朋友参加。希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。",
+      "response_b_text": "招募五位志愿者，周六下午在社区活动室一起整理旧书。本次为无偿志愿活动，欢迎有空的朋友参加。"
+    },
+    {
+      "scenario_id": "zh-challenge-019",
+      "language": "zh-CN",
+      "genre": "customer_service",
+      "relationship": "customer",
+      "intent": "explain",
+      "channel": "private_message",
+      "context": "顾客问退款何时到账，系统显示退款已提交，通常三个工作日，节假日不计。",
+      "instruction": "说明状态和时间，避免保证具体到账日。",
+      "required_facts": [
+        "已提交",
+        "通常三个工作日",
+        "节假日不计"
+      ],
+      "prohibited_changes": [
+        "不得承诺明天到账"
+      ],
+      "pair_id": "pair-af59c0abc6abe4e7",
+      "response_a": "r-b1cc1fd7b4121c45fe010a85",
+      "response_b": "r-f2b0474d75e3f2a54af006fd",
+      "response_a_text": "退款已经提交，通常需要三个工作日，节假日不计入。具体到账时间还要看支付渠道。请您放心，我保证所有相关问题都一定能得到彻底解决。",
+      "response_b_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。退款已经提交，通常需要三个工作日，节假日不计入。具体到账时间还要看支付渠道。希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。"
+    },
+    {
+      "scenario_id": "zh-challenge-015",
+      "language": "zh-CN",
+      "genre": "family_message",
+      "relationship": "parent",
+      "intent": "correct",
+      "channel": "private_message",
+      "context": "妈妈说亲戚已经订好周五的车票。你刚确认亲戚只是打算周五走，还没订票。",
+      "instruction": "更正已订票的误解。",
+      "required_facts": [
+        "计划周五走",
+        "还未订票"
+      ],
+      "prohibited_changes": [
+        "不得改变出发日"
+      ],
+      "pair_id": "pair-82e753cf0155c891",
+      "response_a": "r-c883bd76455ab2d883449d06",
+      "response_b": "r-ff03d73d034688d3433c388e",
+      "response_a_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。我刚问了，他们是打算周五走，但车票还没订。希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。",
+      "response_b_text": "我刚问了，他们是打算周五走，但车票还没订。"
+    },
+    {
+      "scenario_id": "zh-challenge-042",
+      "language": "zh-CN",
+      "genre": "academic_message",
+      "relationship": "student_peer",
+      "intent": "respond",
+      "channel": "private_message",
+      "context": "同学问你是否看过某篇论文，你只看了摘要，没有读全文。",
+      "instruction": "如实说明阅读范围。",
+      "required_facts": [
+        "只读摘要",
+        "未读全文"
+      ],
+      "prohibited_changes": [
+        "不得评价全文实验质量"
+      ],
+      "pair_id": "pair-240d1c51f7924778",
+      "response_a": "r-0436024f7011b13750e3fef4",
+      "response_b": "r-a8cff3ab959c198f1d2b8f3f",
+      "response_a_text": "我只看了摘要，还没读全文，暂时说不好实验部分。",
+      "response_b_text": "我只看了摘要，还没读全文，暂时说不好实验部分。请您放心，我保证所有相关问题都一定能得到彻底解决。"
+    },
+    {
+      "scenario_id": "zh-challenge-040",
+      "language": "zh-CN",
+      "genre": "academic_message",
+      "relationship": "student_peer",
+      "intent": "refuse",
+      "channel": "private_message",
+      "context": "同学想复制你的完整作业提交，你愿意讨论思路但不提供成品。",
+      "instruction": "拒绝复制请求，提供讨论思路的帮助。",
+      "required_facts": [
+        "不提供完整作业",
+        "可以讨论思路"
+      ],
+      "prohibited_changes": [
+        "不要指责对方人格"
+      ],
+      "pair_id": "pair-f5a6bfdfb3a81d18",
+      "response_a": "r-689a4d620b47428f5c7e1d4c",
+      "response_b": "r-4eef376afd87debb332eb41e",
+      "response_a_text": "完整作业我不能给你直接提交，不过可以一起看看题目、讨论思路。请您放心，我保证所有相关问题都一定能得到彻底解决。",
+      "response_b_text": "完整作业我不能给你直接提交，不过可以一起看看题目、讨论思路。"
+    },
+    {
+      "scenario_id": "zh-challenge-038",
+      "language": "zh-CN",
+      "genre": "academic_message",
+      "relationship": "student_peer",
+      "intent": "correct",
+      "channel": "private_message",
+      "context": "小组同学把你尚未验证的猜想写成报告结论。",
+      "instruction": "请求把表述改为待验证假设。",
+      "required_facts": [
+        "猜想尚未验证"
+      ],
+      "prohibited_changes": [
+        "不得将猜想写成已证实结论"
+      ],
+      "pair_id": "pair-5d32bb694720f487",
+      "response_a": "r-07c697a36f800b7a62ef15a8",
+      "response_b": "r-21c1a189fe8ca45a5edb03c5",
+      "response_a_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。这部分目前还是未验证的猜想，麻烦先改成待验证假设，等有结果再写结论。希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。",
+      "response_b_text": "这部分目前还是未验证的猜想，麻烦先改成待验证假设，等有结果再写结论。"
+    },
+    {
+      "scenario_id": "zh-challenge-010",
+      "language": "zh-CN",
+      "genre": "private_message",
+      "relationship": "friend",
+      "intent": "request",
+      "channel": "private_message",
+      "context": "你借给朋友的一本绝版书还没还，下周一你自己要用。",
+      "instruction": "请朋友周日前归还，不暗示对方不守信用。",
+      "required_facts": [
+        "周日前归还",
+        "下周一要用"
+      ],
+      "prohibited_changes": [
+        "不要虚构书的价格"
+      ],
+      "pair_id": "pair-6697dd466769d46b",
+      "response_a": "r-4139cb0f0147f157eb4bbef0",
+      "response_b": "r-3904f3d6808045598f5e2925",
+      "response_a_text": "那本书我下周一要用，你方便周日前还我吗？请您放心，我保证所有相关问题都一定能得到彻底解决。",
+      "response_b_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。那本书我下周一要用，你方便周日前还我吗？希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。"
+    },
+    {
+      "scenario_id": "zh-challenge-028",
+      "language": "zh-CN",
+      "genre": "community_notice",
+      "relationship": "neighbors",
+      "intent": "correct",
+      "channel": "group_chat",
+      "context": "群里说公共活动室永久关闭，实际只是本周三检修一天。",
+      "instruction": "发一条事实澄清，不嘲讽转发者。",
+      "required_facts": [
+        "本周三检修一天"
+      ],
+      "prohibited_changes": [
+        "不得保证检修提前结束"
+      ],
+      "pair_id": "pair-64dc7c7a9e196e9d",
+      "response_a": "r-230de8bf99869045a9a65330",
+      "response_b": "r-ec1df3d4f2e082443a9c59b0",
+      "response_a_text": "活动室不是永久关闭，是本周三检修一天，和大家澄清一下。",
+      "response_b_text": "活动室不是永久关闭，是本周三检修一天，和大家澄清一下。请您放心，我保证所有相关问题都一定能得到彻底解决。"
+    },
+    {
+      "scenario_id": "zh-challenge-027",
+      "language": "zh-CN",
+      "genre": "community_notice",
+      "relationship": "volunteer",
+      "intent": "refuse",
+      "channel": "group_chat",
+      "context": "志愿者报名已满，有人想让你破例加一个名额，但场地人数上限不能增加。",
+      "instruction": "说明原因并提供候补选择。",
+      "required_facts": [
+        "报名已满",
+        "场地人数受限",
+        "可候补"
+      ],
+      "prohibited_changes": [
+        "不得保证候补能入选"
+      ],
+      "pair_id": "pair-1120cac73745a320",
+      "response_a": "r-f7b981d892e405ae854b09b4",
+      "response_b": "r-cad2f4aa19d3f1b6500094c6",
+      "response_a_text": "这次名额已满，场地人数也不能再加。可以先为你登记候补，有空位再联系你。请您放心，我保证所有相关问题都一定能得到彻底解决。",
+      "response_b_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。这次名额已满，场地人数也不能再加。可以先为你登记候补，有空位再联系你。希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。"
+    },
+    {
+      "scenario_id": "zh-challenge-022",
+      "language": "zh-CN",
+      "genre": "customer_service",
+      "relationship": "customer",
+      "intent": "correct",
+      "channel": "private_message",
+      "context": "前一位客服说活动到月底，你查到活动实际在本周日二十三点五十九分结束。",
+      "instruction": "明确更正错误信息并道歉。",
+      "required_facts": [
+        "本周日二十三点五十九分结束"
+      ],
+      "prohibited_changes": [
+        "不得延长活动期限"
+      ],
+      "pair_id": "pair-e837034e5d55f43c",
+      "response_a": "r-482731c707345bef0484c5b7",
+      "response_b": "r-e4c5e11b9fe00ccc6dc7a170",
+      "response_a_text": "抱歉，之前告诉您的截止时间有误。活动实际在本周日二十三点五十九分结束。",
+      "response_b_text": "抱歉，之前告诉您的截止时间有误。活动实际在本周日二十三点五十九分结束。请您放心，我保证所有相关问题都一定能得到彻底解决。"
+    },
+    {
+      "scenario_id": "zh-challenge-032",
+      "language": "zh-CN",
+      "genre": "technical_explanation",
+      "relationship": "teammate",
+      "intent": "correct",
+      "channel": "private_message",
+      "context": "报告称新缓存策略提升百分之二十速度，实际测得的是延迟降低百分之二十。",
+      "instruction": "指出指标表述差异，不换算成未经验证的新数据。",
+      "required_facts": [
+        "延迟降低百分之二十"
+      ],
+      "prohibited_changes": [
+        "不得等同于吞吐量提高百分之二十"
+      ],
+      "pair_id": "pair-ecb62817fb33b180",
+      "response_a": "r-f31d5c676ca0582818bdf64c",
+      "response_b": "r-3722b982a29c78b587786644",
+      "response_a_text": "这里建议写成延迟降低百分之二十。我们测的是延迟，不能直接表述为吞吐量提升。",
+      "response_b_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。这里建议写成延迟降低百分之二十。我们测的是延迟，不能直接表述为吞吐量提升。希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。"
+    },
+    {
+      "scenario_id": "zh-challenge-031",
+      "language": "zh-CN",
+      "genre": "technical_explanation",
+      "relationship": "nontechnical_user",
+      "intent": "explain",
+      "channel": "private_message",
+      "context": "用户以为删除桌面快捷方式会卸载软件。你要解释快捷方式只是入口。",
+      "instruction": "用两句话解释，不堆术语。",
+      "required_facts": [
+        "快捷方式只是入口",
+        "删除不会卸载软件"
+      ],
+      "prohibited_changes": [
+        "不得断言所有文件都不会受影响"
+      ],
+      "pair_id": "pair-b3b0a62d69bc253d",
+      "response_a": "r-2ba64f1ed620818c34d22296",
+      "response_b": "r-e110e8862548571c8ecb6200",
+      "response_a_text": "快捷方式只是打开软件的一个入口。删掉这个入口，不等于卸载软件。",
+      "response_b_text": "快捷方式只是打开软件的一个入口。删掉这个入口，不等于卸载软件。请您放心，我保证所有相关问题都一定能得到彻底解决。"
+    },
+    {
+      "scenario_id": "zh-challenge-001",
+      "language": "zh-CN",
+      "genre": "workplace_message",
+      "relationship": "manager",
+      "intent": "refuse",
+      "channel": "private_message",
+      "context": "主管让你今晚接手一个新项目，你正在处理明早必须完成的上线检查。",
+      "instruction": "说明冲突，请主管决定优先级。",
+      "required_facts": [
+        "明早上线检查"
+      ],
+      "prohibited_changes": [
+        "不要替主管决定取消原任务"
+      ],
+      "pair_id": "pair-418de604857e2c2b",
+      "response_a": "r-45643798b2b9f17843f81d6d",
+      "response_b": "r-1c807eca6f7e85b92dec7b62",
+      "response_a_text": "我今晚在做明早的上线检查，接新项目会影响这项工作。您看哪个优先，我按您的安排调整。",
+      "response_b_text": "我今晚在做明早的上线检查，接新项目会影响这项工作。您看哪个优先，我按您的安排调整。请您放心，我保证所有相关问题都一定能得到彻底解决。"
+    },
+    {
+      "scenario_id": "zh-challenge-029",
+      "language": "zh-CN",
+      "genre": "community_notice",
+      "relationship": "volunteer",
+      "intent": "thank",
+      "channel": "group_chat",
+      "context": "三位志愿者临时帮忙搬了十箱书，你想在群里感谢，不公布他们姓名。",
+      "instruction": "具体感谢贡献，不使用宏大套话。",
+      "required_facts": [
+        "三位志愿者",
+        "十箱书"
+      ],
+      "prohibited_changes": [
+        "不得编造姓名"
+      ],
+      "pair_id": "pair-50a9ffee20214516",
+      "response_a": "r-467ebd31893803abfb161eb9",
+      "response_b": "r-555cfb14e203c5cf675100c6",
+      "response_a_text": "谢谢刚才帮忙的三位志愿者，十箱书都搬好了，辛苦大家！",
+      "response_b_text": "谢谢刚才帮忙的三位志愿者，十箱书都搬好了，辛苦大家！请您放心，我保证所有相关问题都一定能得到彻底解决。"
+    },
+    {
+      "scenario_id": "zh-challenge-024",
+      "language": "zh-CN",
+      "genre": "customer_service",
+      "relationship": "customer",
+      "intent": "respond",
+      "channel": "private_message",
+      "context": "顾客反馈按钮文字太小，你只能记录并转交产品团队，没有排期。",
+      "instruction": "回应建议，说明转交，不承诺改版时间。",
+      "required_facts": [
+        "记录建议",
+        "转交产品团队",
+        "暂无排期"
+      ],
+      "prohibited_changes": [
+        "不得说下个版本一定修复"
+      ],
+      "pair_id": "pair-2470381db74559fc",
+      "response_a": "r-a95c70269ac650b7501ff90d",
+      "response_b": "r-ebd3c684bee9ca1d8d92ddd3",
+      "response_a_text": "收到，按钮文字太小的问题我会记录并转给产品团队，目前还没有调整排期。请您放心，我保证所有相关问题都一定能得到彻底解决。",
+      "response_b_text": "收到，按钮文字太小的问题我会记录并转给产品团队，目前还没有调整排期。"
+    },
+    {
+      "scenario_id": "zh-challenge-021",
+      "language": "zh-CN",
+      "genre": "customer_service",
+      "relationship": "customer",
+      "intent": "refuse",
+      "channel": "private_message",
+      "context": "顾客要求把本来不支持的当天送达写在订单备注里，仓库不能保证。",
+      "instruction": "清楚说明无法保证当天送达。",
+      "required_facts": [
+        "无法保证当天送达"
+      ],
+      "prohibited_changes": [
+        "不得暗示备注可以保证加急"
+      ],
+      "pair_id": "pair-2ab65b0fe855862a",
+      "response_a": "r-7dbebfef09a8afeb316ceb31",
+      "response_b": "r-793dd474c14d4254c7c4e3d8",
+      "response_a_text": "目前无法保证当天送达，即使写进备注也不能确保。想先跟您说明，免得影响您的安排。",
+      "response_b_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。目前无法保证当天送达，即使写进备注也不能确保。想先跟您说明，免得影响您的安排。希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。"
+    },
+    {
+      "scenario_id": "zh-challenge-044",
+      "language": "zh-CN",
+      "genre": "public_post",
+      "relationship": "public",
+      "intent": "correct",
+      "channel": "public_feed",
+      "context": "你昨天分享的一张照片标注成成都，后来确认是重庆。",
+      "instruction": "更正地点，说明已更新原帖。",
+      "required_facts": [
+        "原标成都",
+        "实际重庆",
+        "已更新原帖"
+      ],
+      "prohibited_changes": [
+        "不得推卸给未提及的摄影师"
+      ],
+      "pair_id": "pair-d5ed34637de4c104",
+      "response_a": "r-f7160fbdac7149e97c2ed00b",
+      "response_b": "r-82d62f101781d173b5a90a55",
+      "response_a_text": "更正一下：昨天那张照片拍的是重庆，不是成都。我已更新原帖，抱歉标错了。请您放心，我保证所有相关问题都一定能得到彻底解决。",
+      "response_b_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。更正一下：昨天那张照片拍的是重庆，不是成都。我已更新原帖，抱歉标错了。希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。"
+    },
+    {
+      "scenario_id": "zh-challenge-025",
+      "language": "zh-CN",
+      "genre": "community_notice",
+      "relationship": "neighbor",
+      "intent": "request",
+      "channel": "group_chat",
+      "context": "楼上最近晚上十一点后搬动家具，影响你休息。你不知道具体原因。",
+      "instruction": "私信请对方夜间轻一点，不推测动机。",
+      "required_facts": [
+        "晚上十一点后",
+        "搬家具声音"
+      ],
+      "prohibited_changes": [
+        "不要指责故意扰民"
+      ],
+      "pair_id": "pair-0c56102e9999f640",
+      "response_a": "r-b137930330416e228a218dba",
+      "response_b": "r-99ec0eacc1bcd53fb752cc1c",
+      "response_a_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。最近晚上十一点后能听到搬家具的声音，有点影响休息。这个时间方便尽量轻一些吗？希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。",
+      "response_b_text": "最近晚上十一点后能听到搬家具的声音，有点影响休息。这个时间方便尽量轻一些吗？请您放心，我保证所有相关问题都一定能得到彻底解决。"
+    },
+    {
+      "scenario_id": "zh-challenge-016",
+      "language": "zh-CN",
+      "genre": "family_message",
+      "relationship": "grandparent",
+      "intent": "explain",
+      "channel": "private_message",
+      "context": "外婆第一次用视频通话，不知道怎么接。界面会出现绿色接听按钮。",
+      "instruction": "用简单口语说明一步操作。",
+      "required_facts": [
+        "点绿色接听按钮"
+      ],
+      "prohibited_changes": [
+        "不要加入未提供的界面步骤"
+      ],
+      "pair_id": "pair-9d49fc247dbb9cc6",
+      "response_a": "r-001fb3725a97cde21ff59e2a",
+      "response_b": "r-926506afb9473fbda777a010",
+      "response_a_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。看到绿色的接听按钮，点一下就能接啦。希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。",
+      "response_b_text": "看到绿色的接听按钮，点一下就能接啦。"
+    },
+    {
+      "scenario_id": "zh-challenge-020",
+      "language": "zh-CN",
+      "genre": "customer_service",
+      "relationship": "customer",
+      "intent": "apologize",
+      "channel": "private_message",
+      "context": "顾客收到蓝色杯子而非白色。你可安排换货，但需顾客先提供订单号。",
+      "instruction": "道歉并只索取必要信息。",
+      "required_facts": [
+        "蓝色误发",
+        "需要订单号",
+        "可换货"
+      ],
+      "prohibited_changes": [
+        "不得索取身份证号"
+      ],
+      "pair_id": "pair-4e5149eda766c810",
+      "response_a": "r-aa9ee29ad3391307ecb68341",
+      "response_b": "r-3df217d4221a0096bb471fb7",
+      "response_a_text": "抱歉，把白色杯子错发成蓝色了。请发一下订单号，我帮您安排换货。",
+      "response_b_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。抱歉，把白色杯子错发成蓝色了。请发一下订单号，我帮您安排换货。希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。"
+    },
+    {
+      "scenario_id": "zh-challenge-043",
+      "language": "zh-CN",
+      "genre": "public_post",
+      "relationship": "public",
+      "intent": "explain",
+      "channel": "public_feed",
+      "context": "活动因暴雨取消，主办方还没定补办日期。",
+      "instruction": "写一条简短公告，明确日期待定。",
+      "required_facts": [
+        "暴雨取消",
+        "补办日期待定"
+      ],
+      "prohibited_changes": [
+        "不得虚构下周补办"
+      ],
+      "pair_id": "pair-10bfef3c45708868",
+      "response_a": "r-fb43d58e1dc8455caa21bd24",
+      "response_b": "r-cfa43b8879ad98626fae903e",
+      "response_a_text": "因暴雨，本次活动取消。补办日期还未确定，有消息后会再通知大家。请您放心，我保证所有相关问题都一定能得到彻底解决。",
+      "response_b_text": "感谢您的关注与理解。关于您提到的这一情况，我想从以下几个方面进行说明。因暴雨，本次活动取消。补办日期还未确定，有消息后会再通知大家。希望以上信息能够为您提供帮助，如有任何其他问题，请随时与我沟通。"
+    },
+    {
+      "scenario_id": "zh-challenge-033",
+      "language": "zh-CN",
+      "genre": "technical_explanation",
+      "relationship": "nontechnical_user",
+      "intent": "request",
+      "channel": "private_message",
+      "context": "用户报告文件无法打开，你需要错误提示的文字和文件扩展名，文件内容可能私密。",
+      "instruction": "请求最小必要信息。",
+      "required_facts": [
+        "错误提示文字",
+        "扩展名"
+      ],
+      "prohibited_changes": [
+        "不得要求上传私密文件内容"
+      ],
+      "pair_id": "pair-612963fd212d1f39",
+      "response_a": "r-2bfe945ad14ed70f48838590",
+      "response_b": "r-2fcebf6ed2a191d94e53f30c",
+      "response_a_text": "请发一下报错文字和文件扩展名就好，不用上传文件内容。请您放心，我保证所有相关问题都一定能得到彻底解决。",
+      "response_b_text": "请发一下报错文字和文件扩展名就好，不用上传文件内容。"
+    },
+    {
+      "scenario_id": "zh-challenge-041",
+      "language": "zh-CN",
+      "genre": "academic_message",
+      "relationship": "instructor",
+      "intent": "apologize",
+      "channel": "private_message",
+      "context": "你发给老师的文件缺了附录，已补全，正文未变。",
+      "instruction": "说明补发原因和改动范围。",
+      "required_facts": [
+        "补全附录",
+        "正文未变"
+      ],
+      "prohibited_changes": [
+        "不得声称原文件完整"
+      ],
+      "pair_id": "pair-049b170a8e4785ac",
+      "response_a": "r-8a77e25cde14cb3a6309b383",
+      "response_b": "r-dbc347c6696e2241d3856898",
+      "response_a_text": "老师您好，刚才的文件漏了附录，抱歉。现补发完整版本，正文没有改动。请您放心，我保证所有相关问题都一定能得到彻底解决。",
+      "response_b_text": "老师您好，刚才的文件漏了附录，抱歉。现补发完整版本，正文没有改动。"
     }
-  ]
+  ],
+  "title": "Controlled software demonstration",
+  "demo": true,
+  "assignment_id": "rater-001"
 }

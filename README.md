@@ -1,143 +1,178 @@
-# 说人话 Bench (Shuorenhua Bench)
+# 说人话 Bench · v0.3
 
-A context- and population-conditioned benchmark for perceived naturalness, direct usability,
-revision burden, and semantic preservation in model-generated text.
+**Measure which messages people prefer and would actually use in a specific situation.**
 
-The benchmark does **not** define a universal “human-likeness” score. It measures what people
-prefer and would actually use in a specified relationship, channel, intent, and communication
-context. AI-source detection is kept as a separate research task.
+A human-grounded research workbench for Chinese communication. Native generation and
+humanization are separate tracks. Source detection, diagnostics and preference are separate constructs.
 
-## What works in v0.2 alpha
+**Status:** functioning study infrastructure with 72 scenario candidates. The bundled
+leaderboard contains **synthetic software-test votes**, not measured model performance.
+The 48 new challenge candidates are AI-authored and await native-speaker review.
+This release does not establish SOTA or a validated population benchmark.
 
-- 24 native Chinese messaging scenarios with required facts and prohibited changes;
-- real-model generation through any OpenAI-compatible API, including OpenRouter;
-- reproducible manifests with model name, decoding configuration, hashes, and usage metadata;
-- deterministic, position-balanced blind pair construction;
-- a browser annotation UI for `A / tie / B` and `send / revise / reject` judgments;
-- JSONL export with no server-side collection of annotator data;
-- Davidson–Bradley–Terry estimation with ties and prompt-clustered bootstrap intervals;
-- direct-use rates with Wilson intervals and pair-level disagreement entropy;
-- leakage-resistant grouped train/dev/test splits;
-- deterministic repetition, excess n-gram, semantic-preservation, and register diagnostics.
+## Run locally
 
-See [the benchmark card](docs/benchmark_card.md) for the claim boundary and minimum credible
-pilot. This repository is SOTA-oriented; it does not claim SOTA results before human validation.
+From this repository directory, without activating a virtual environment:
 
-## Try the deployed annotation demo
+~~~powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe scripts/serve_web.py --port 8043
+~~~
 
-Open the Vercel deployment in a browser. The root page presents an anonymous comparison. Enter
-an annotator ID, choose a preference and action for each response, then export the judgments as
-JSONL. The included responses are controlled smoke-test texts, not human/model performance data.
+Open <http://127.0.0.1:8043>. The workbench includes Overview, Annotate and Results.
+A ready-made demonstration is included; no API key is needed.
 
-To run the same interface locally:
+On macOS/Linux, use .venv/bin/python. For the exact tested dependency set, install
+requirements-dev.lock before installing the project with --no-deps.
 
-```bash
-python -m pip install -e ".[dev]"
-python scripts/serve_web.py
-```
+## What v0.3 adds
 
-Open <http://127.0.0.1:8000>.
+- **Study packages:** frozen input copies, SHA-256 checks, private identity maps, opaque public
+  response IDs, distinct-rater assignments, and A/B counterbalancing.
+- **Annotation desk:** packet import, persistent progress scoped to packet and annotator,
+  preference, send/revise/reject actions, confidence, timing, optional problem spans and export.
+- **Strict import:** validate assignment and displayed orientation, resolve blind IDs, ignore
+  identical duplicate exports, and reject conflicts or cross-study records.
+- **Statistics:** regularized Davidson–Bradley–Terry estimation, identifiable position adjustment,
+  graph connectivity checks, semantic/template group bootstrap, pairwise contrasts, exploratory
+  rank intervals, direct-use intervals and explicit missing-evidence warnings.
+- **Evidence inspection:** agreement normalized across reversed displays, per-rater diagnostics,
+  span counts, coverage and context slices. Repeated response/rater actions count as one observation.
+- **Collection:** the 24-case alpha plus 48 challenge candidates covering commitment strength,
+  privacy, uncertainty, audience adaptation, factual scope and social relationships.
+- **Generation:** dry-run preflight, bounded completions/retries, configuration-checked resume,
+  atomic output replacement, provider-returned model metadata, truncation rejection and rewriting.
+- **Research operations:** dataset/split audits, approximate sample-size planning,
+  preregistration template, regression tests and CI.
 
-## Run a real two-model pilot
+## Full software demonstration
 
-### 1. Install
+Use a fresh output directory; prepared studies are not overwritten.
 
-```bash
-git clone https://github.com/Anormalm/human-bench.git
-cd human-bench
-python -m pip install -e ".[dev]"
-```
+~~~powershell
+.\.venv\Scripts\python.exe scripts/run_demo.py --output studies/my-demo --bootstrap-samples 1000
+~~~
 
-### 2. Select models
+This constructs 144 pairs from 48 scenarios and three controlled fixture systems,
+creates 12 rater packets, simulates 432 explicitly labeled votes, imports them through
+the study verifier, and fits the report. It does not call a model API or recruit people.
+Add --update-web-demo to replace the bundled demo. Refresh after changing files.
+Previously imported packets remain selected; import the desired packet to change studies.
 
-`configs/systems.example.yaml` uses OpenRouter as an OpenAI-compatible endpoint without locking
-the benchmark to particular model families. Set two exact model IDs and your API key.
+## Run a real study
 
-PowerShell:
+### 1. Review scenarios and declare the experiment
 
-```powershell
+Start with data/prompts/suite_zh_v0.3.jsonl and the
+[research protocol](docs/research_protocol_v03.md). Have native speakers review candidate
+contexts, facts, constraints and suitability. Author fresh human references with documented
+source, consent and licensing. Keep recruitment identities outside this repository.
+
+~~~powershell
+.\.venv\Scripts\python.exe -m shuorenhua_bench.cli plan --systems 4 --scenarios 200 --effect 0.1
+~~~
+
+The planner is a binary normal approximation with explicit ICC and multiplicity assumptions,
+not validated power for the full tie-aware model. This design has 1,200 pairs and 3,600 judgments.
+The repository currently supplies 72 candidates, not 200 validated cases.
+
+### 2. Generate model responses
+
+Choose exact model identifiers using configs/systems.example.yaml (OpenRouter) or
+configs/systems.openai.example.yaml (OpenAI). Keep credentials in environment variables.
+
+~~~powershell
 $env:OPENROUTER_API_KEY="your-key"
-$env:SHUORENHUA_MODEL_A="provider/model-a"
-$env:SHUORENHUA_MODEL_B="provider/model-b"
-```
+$env:SHUORENHUA_MODEL_A="provider/exact-model-a"
+$env:SHUORENHUA_MODEL_B="provider/exact-model-b"
+.\.venv\Scripts\python.exe scripts/generate_responses.py --scenarios data/prompts/suite_zh_v0.3.jsonl --systems configs/systems.example.yaml --output data/private/model_responses.jsonl --limit 3 --dry-run --max-calls 6
+~~~
 
-Bash:
+Review the plan, then remove --dry-run to perform six completions.
+--max-calls bounds logical completions; retries may create extra HTTP requests and charges.
+It is **not a dollar budget**. Provider billing and model availability are external.
 
-```bash
-export OPENROUTER_API_KEY="your-key"
-export SHUORENHUA_MODEL_A="provider/model-a"
-export SHUORENHUA_MODEL_B="provider/model-b"
-```
+Use --resume after interruption. Changed prompts, models or decoding settings require a new
+output path. v0.2 outputs lack request fingerprints and cannot be silently resumed.
+Use dated snapshots where available; a provider-returned alias does not prove an immutable model.
 
-### 3. Smoke-test three scenarios
+For rewriting, add --sources with a source-response JSONL file. Use one fixed source per
+scenario shared by every rewrite system. The output retains source records for lineage
+validation; only compatible rewrite responses are compared.
 
-```bash
-python scripts/generate_responses.py \
-  --scenarios data/prompts/pilot_zh_messaging_v0.2.jsonl \
-  --systems configs/systems.example.yaml \
-  --output data/responses/pilot_models.jsonl \
-  --limit 3 --resume
-```
+### 3. Prepare blinded assignments
 
-Remove `--limit 3` for the complete 24-scenario alpha. `--resume` skips completed calls after an
-API interruption.
+~~~powershell
+.\.venv\Scripts\python.exe -m shuorenhua_bench.cli prepare --scenarios data/prompts/suite_zh_v0.3.jsonl --responses data/private/model_responses.jsonl --output studies/live-pilot --raters 12 --judgments-per-pair 3
+~~~
 
-### 4. Blind the comparisons
+Use matching scenario/response files. A generation run with --limit 3 covers only that subset;
+the audit shows missing responses for the remaining scenarios.
 
-```bash
-python scripts/build_pairs.py \
-  --responses data/responses/pilot_models.jsonl \
-  --output data/annotations/pilot_pairs.jsonl
+~~~text
+manifest.json                    Declared design, assignments, input hashes
+private/scenarios.jsonl           Frozen scenarios
+private/responses.jsonl           Frozen outputs and provenance
+private/pairs.jsonl               Canonical comparisons
+private/response_map.json         Identity key; never give to annotators
+public/rater-001.json ...         Individually assigned blind packets
+~~~
 
-python scripts/build_annotation_bundle.py \
-  --scenarios data/prompts/pilot_zh_messaging_v0.2.jsonl \
-  --responses data/responses/pilot_models.jsonl \
-  --pairs data/annotations/pilot_pairs.jsonl \
-  --output data/web/demo_bundle.json
-```
+Preserve a separate trusted manifest before collection. Hash checks detect changes relative
+to it; they are not a signature against someone rewriting both inputs and manifest.
 
-Restart the local web server, or commit the new bundle and redeploy Vercel. The UI never reveals
-system names and stores progress only in the annotator's browser.
+Give each participant their own packet to load in Annotate. An assignment ID is a pseudonym,
+not authentication or proof of an independent human. Manage recruitment, consent and one
+participant per ID outside the app. Progress stays in browser storage; export regularly.
+Private browsing, storage eviction or clearing site data can remove progress.
 
-### 5. Aggregate exported human judgments
+### 4. Import and inspect
 
-Combine annotators' exported JSONL records, then run:
+~~~powershell
+.\.venv\Scripts\python.exe -m shuorenhua_bench.cli evaluate --study studies/live-pilot --exports exports/rater-001.jsonl exports/rater-002.jsonl exports/rater-003.jsonl --output results/live-pilot.json --bootstrap-samples 1000
+~~~
 
-```bash
-python scripts/evaluate.py \
-  --responses data/responses/pilot_models.jsonl \
-  --judgments data/annotations/judgments.jsonl \
-  --output results/report.json \
-  --bootstrap-samples 1000
-```
+List all exported files. Load the resulting JSON in Results. Under-annotated planned pairs
+remain visible. The CLI also writes a normalized judgments JSONL next to the report;
+keep it private during collection.
 
-The report contains system abilities, uncertainty intervals, empirical win/tie/loss counts,
-direct-use distributions, sample sizes, and disagreement estimates. There is no mandatory
-overall score.
+Set SHUORENHUA_BUNDLE and SHUORENHUA_REPORT to absolute paths before starting the local server
+to serve a selected packet/report. Only those configured files and allowlisted web assets
+are exposed. There is no server-side collection or study-directory browsing.
+The local server is a development server.
 
-## Benchmark pipeline
+## Audit and grouped splits
 
-```text
-authored scenarios → declared model outputs → blinded balanced pairs → human observations
-        → validation → tie-aware statistical model → multidimensional report
-```
+~~~powershell
+.\.venv\Scripts\python.exe scripts/build_splits.py --scenarios data/prompts/suite_zh_v0.3.jsonl --output data/splits/suite_v03.json
+.\.venv\Scripts\python.exe -m shuorenhua_bench.cli audit --scenarios data/prompts/suite_zh_v0.3.jsonl --splits data/splits/suite_v03.json --output results/audit.json
+~~~
 
-Automated judges are optional extensions. They must predict held-out human judgment distributions,
-report calibration and abstention, and never replace the human evaluation protocol silently.
+Grouping uses the transitive closure of semantic and template IDs. Review those IDs:
+automatic grouping cannot discover all paraphrases. Public splits are reproducible
+development partitions, not protected held-out evaluation data.
 
-## Data and research policy
+## Interpretation and development
 
-Do not commit private conversations, credentials, unlicensed text, or identifiable annotator data.
-Real releases must document scenario sourcing, participant recruitment, consent, exclusions,
-population composition, model snapshots, decoding settings, and preregistered primary analyses.
+Intervals capture scenario-group resampling conditional on recruited raters, not uncertainty
+over a new rater population. The model is regularized, not a hierarchical mixed-effects model.
+Sparse or disconnected comparisons do not justify a complete ranking. Diagnostics and
+optional problem flags do not measure quality by themselves.
 
-## Development
+~~~powershell
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m ruff check .
+.\.venv\Scripts\python.exe -m compileall -q api src scripts
+~~~
 
-```bash
-python -m compileall -q api src scripts
-pytest
-```
+Raw-ID v0.2 judgments still work with scripts/evaluate.py, with stricter validation.
+Standalone v0.3 bundle construction now requires --private-map outside the public directory;
+pass the map as --response-map to scripts/evaluate.py. Prefer the study prepare/evaluate
+workflow because it also validates assignments.
 
-The optional `statsmodels` backend is installed with `.[stats]`. Register diagnostics explain
-distributional differences; they are not quality labels.
+Report schema 0.3 replaces IID Wilson and prompt-only interval fields with group-bootstrap
+fields. Consumers should check schema_version.
 
+See [CHANGELOG](CHANGELOG.md), [benchmark card](docs/benchmark_card.md),
+[research protocol](docs/research_protocol_v03.md) and [data documentation](data/README.md).

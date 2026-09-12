@@ -1,0 +1,73 @@
+{
+  "schema_version": "0.3",
+  "valid": true,
+  "n_scenarios": 72,
+  "n_responses": 0,
+  "systems": [],
+  "coverage": {
+    "language": {
+      "zh-CN": 72
+    },
+    "genre": {
+      "workplace_message": 14,
+      "private_message": 12,
+      "customer_service": 10,
+      "technical_explanation": 8,
+      "social_post": 1,
+      "opinion": 1,
+      "group_message": 2,
+      "family_message": 6,
+      "community_notice": 6,
+      "academic_message": 6,
+      "public_post": 6
+    },
+    "relationship": {
+      "colleague": 10,
+      "manager": 6,
+      "friend": 10,
+      "stranger": 9,
+      "client": 1,
+      "parent": 3,
+      "sibling": 1,
+      "grandparent": 1,
+      "partner": 1,
+      "customer": 6,
+      "neighbor": 2,
+      "neighbors": 2,
+      "volunteer": 2,
+      "nontechnical_user": 3,
+      "teammate": 3,
+      "instructor": 3,
+      "student_peer": 3,
+      "public": 6
+    },
+    "intent": {
+      "explain": 13,
+      "request": 15,
+      "refuse": 12,
+      "respond": 17,
+      "correct": 8,
+      "apologize": 4,
+      "comfort": 1,
+      "thank": 2
+    },
+    "task_type": {
+      "contextual_completion": 68,
+      "outline_guided": 2,
+      "open_ended": 2
+    }
+  },
+  "issues": [],
+  "split_issues": [],
+  "exact_duplicate_scenarios": [],
+  "near_duplicate_review_candidates": [],
+  "missing_system_scenario_cells": [],
+  "scenario_sources": {
+    "benchmark_authored": 24,
+    "ai_authored_candidate": 48
+  },
+  "human_reference_count": 0,
+  "human_references_with_documented_consent_source_license": 0,
+  "model_responses_missing_manifest": [],
+  "interpretation": "An integrity/coverage audit is not construct validation or evidence of SOTA."
+}

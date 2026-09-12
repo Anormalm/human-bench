@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "shuorenhua-bench"
-version = "0.2.0"
+version = "0.3.0"
 description = "Context- and population-conditioned evaluation of model-generated text"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -14,6 +14,7 @@ dependencies = [
   "numpy>=1.24",
   "pydantic>=2.6",
   "PyYAML>=6.0",
+  "scipy>=1.10",
 ]
 
 [project.optional-dependencies]
@@ -23,6 +24,7 @@ dev = ["pytest>=8.0", "ruff>=0.6"]
 
 [project.scripts]
 shuorenhua-build-pairs = "shuorenhua_bench.pairing:main"
+shuorenhua = "shuorenhua_bench.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/shuorenhua_bench"]

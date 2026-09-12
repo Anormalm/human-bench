@@ -62,7 +62,7 @@ class Response(StrictModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def humanization_has_source(self) -> "Response":
+    def humanization_has_source(self) -> Response:
         if self.track == "humanization" and not self.source_response_id:
             raise ValueError("humanization responses require source_response_id")
         return self
@@ -77,7 +77,7 @@ class Pair(StrictModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def distinct_responses(self) -> "Pair":
+    def distinct_responses(self) -> Pair:
         if self.response_a == self.response_b:
             raise ValueError("a response cannot be paired with itself")
         return self
@@ -91,7 +91,7 @@ class ProblemSpan(StrictModel):
     severity: int = Field(ge=1, le=3)
 
     @model_validator(mode="after")
-    def valid_range(self) -> "ProblemSpan":
+    def valid_range(self) -> ProblemSpan:
         if self.end <= self.start:
             raise ValueError("span end must be greater than start")
         return self
@@ -110,4 +110,6 @@ class PairwiseJudgment(StrictModel):
     duration_seconds: float | None = Field(default=None, ge=0)
     population: dict[str, str] = Field(default_factory=dict)
     spans: list[ProblemSpan] = Field(default_factory=list)
-
+    study_id: str | None = None
+    assignment_id: str | None = None
+    evidence_kind: Literal["human", "synthetic"] = "human"
