@@ -279,7 +279,7 @@ function runSetup() {
 }
 function updateRunPlan() {
   const count = Number($("runCount").value);
-  const command = "python -m shuorenhua_bench.cli run --scenarios data/prompts/suite_zh_v0.3.jsonl --config bench-config.json --output studies/model-run --limit " + count;
+  const command = ".\\.venv\\Scripts\\python.exe -m shuorenhua_bench.cli run --scenarios data/prompts/suite_zh_v0.3.jsonl --config bench-config.json --output studies/model-run --limit " + count;
   $("runPreview").textContent = command;
   $("runExecute").textContent = command + " --execute --max-requests " + count * 8;
   $("runPlan").textContent = count * 2 + " generated responses + " + count * 2 +
