@@ -9,9 +9,12 @@ import yaml
 
 from .audit import audit_dataset, plan_sample_size
 from .benchmark_run import run_benchmark
+from .combine_runs import combine_runs
 from .dataset import read_jsonl, write_jsonl
 from .judge_audit import compare_judges, reanalyze_run
+from .judge_controls import JudgeControl, run_controls
 from .leaderboard.aggregate import aggregate
+from .rater_site import prepare_rater_site
 from .schemas import Pair, Response, Scenario
 from .study import import_judgments, prepare_study, verify_study, write_json
 
@@ -38,11 +41,25 @@ def main():
     compare.add_argument("--min-human-raters", type=int, default=3)
     compare.add_argument("--bootstrap-samples", type=int, default=1000)
     compare.add_argument("--seed", type=int, default=20260913)
+    combine = sub.add_parser("combine-runs", help="Pool disjoint completed batches offline")
+    combine.add_argument("--runs", type=Path, nargs="+", required=True)
+    combine.add_argument("--output", type=Path, required=True)
+    combine.add_argument("--bootstrap-samples", type=int, default=1000)
+    combine.add_argument("--seed", type=int, default=20260913)
+    combine.add_argument("--raters", type=int, default=12)
     reanalyze = sub.add_parser("reanalyze", help="Rebuild a screening report from saved raw observations offline")
     reanalyze.add_argument("--run", type=Path, required=True)
     reanalyze.add_argument("--output", type=Path, required=True)
     reanalyze.add_argument("--bootstrap-samples", type=int, default=1000)
     reanalyze.add_argument("--seed", type=int, default=20260913)
+    controls = sub.add_parser("judge-controls", help="Check a judge on constructed fixtures; separate from ranking")
+    controls.add_argument("--controls", type=Path, required=True)
+    controls.add_argument("--config", type=Path, required=True, help="Run config containing the judge entry")
+    controls.add_argument("--output", type=Path, required=True)
+    controls.add_argument("--execute", action="store_true")
+    controls.add_argument("--max-requests", type=int)
+    controls.add_argument("--resume", action="store_true")
+    controls.add_argument("--seed", type=int, default=20260913)
     prepare = sub.add_parser("prepare", help="Freeze a study and create blinded rater packets")
     prepare.add_argument("--scenarios", type=Path, required=True)
     prepare.add_argument("--responses", type=Path, required=True)
@@ -51,6 +68,10 @@ def main():
     prepare.add_argument("--judgments-per-pair", type=int, default=3)
     prepare.add_argument("--seed", type=int, default=20260913)
     prepare.add_argument("--name", default="Chinese communication study")
+    rater_site = sub.add_parser("rater-site", help="Build a frozen rater-only site with individual assignment links")
+    rater_site.add_argument("--study", type=Path, required=True)
+    rater_site.add_argument("--output", type=Path, required=True)
+    rater_site.add_argument("--base-url", default="http://127.0.0.1:8044")
     evaluate = sub.add_parser("evaluate", help="Verify study, resolve blind exports and report")
     evaluate.add_argument("--study", type=Path, required=True)
     evaluate.add_argument("--exports", type=Path, nargs="+", required=True)
@@ -95,6 +116,9 @@ def main():
         print(json.dumps({"report": str(args.output), "n_pairs": result["n_pairs"],
                           "evidence_status": result["evidence_status"]}, indent=2))
         return
+    elif args.command == "combine-runs":
+        result = combine_runs(args.runs, args.output, bootstrap_samples=args.bootstrap_samples,
+                              seed=args.seed, raters=args.raters)
     elif args.command == "reanalyze":
         if args.bootstrap_samples < 0:
             parser.error("--bootstrap-samples must be nonnegative")
@@ -102,10 +126,18 @@ def main():
             parser.error("--output must be a new report path; preserve previous analyses")
         result = reanalyze_run(args.run, bootstrap_samples=args.bootstrap_samples, seed=args.seed)
         write_json(args.output, result)
+    elif args.command == "judge-controls":
+        fixtures = [JudgeControl.model_validate(c) for c in
+                    json.loads(args.controls.read_text(encoding="utf-8-sig"))]
+        config = yaml.safe_load(args.config.read_text(encoding="utf-8-sig"))
+        result = run_controls(fixtures, config["judge"], args.output, execute=args.execute,
+                              max_requests=args.max_requests, resume=args.resume, seed=args.seed)
     elif args.command == "prepare":
         result = prepare_study(read_jsonl(args.scenarios, Scenario), read_jsonl(args.responses, Response),
                                args.output, raters=args.raters, judgments_per_pair=args.judgments_per_pair,
                                seed=args.seed, study_name=args.name)
+    elif args.command == "rater-site":
+        result = prepare_rater_site(args.study, args.output, base_url=args.base_url)
     elif args.command == "evaluate":
         manifest = verify_study(args.study)
         judgments, duplicates = import_judgments(args.study, args.exports)
