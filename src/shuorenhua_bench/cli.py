@@ -11,6 +11,7 @@ from .audit import audit_dataset, plan_sample_size
 from .benchmark_run import run_benchmark
 from .dataset import read_jsonl, write_jsonl
 from .judge_audit import compare_judges, reanalyze_run
+from .judge_controls import JudgeControl, run_controls
 from .leaderboard.aggregate import aggregate
 from .schemas import Pair, Response, Scenario
 from .study import import_judgments, prepare_study, verify_study, write_json
@@ -43,6 +44,14 @@ def main():
     reanalyze.add_argument("--output", type=Path, required=True)
     reanalyze.add_argument("--bootstrap-samples", type=int, default=1000)
     reanalyze.add_argument("--seed", type=int, default=20260913)
+    controls = sub.add_parser("judge-controls", help="Check a judge on constructed fixtures; separate from ranking")
+    controls.add_argument("--controls", type=Path, required=True)
+    controls.add_argument("--config", type=Path, required=True, help="Run config containing the judge entry")
+    controls.add_argument("--output", type=Path, required=True)
+    controls.add_argument("--execute", action="store_true")
+    controls.add_argument("--max-requests", type=int)
+    controls.add_argument("--resume", action="store_true")
+    controls.add_argument("--seed", type=int, default=20260913)
     prepare = sub.add_parser("prepare", help="Freeze a study and create blinded rater packets")
     prepare.add_argument("--scenarios", type=Path, required=True)
     prepare.add_argument("--responses", type=Path, required=True)
@@ -102,6 +111,12 @@ def main():
             parser.error("--output must be a new report path; preserve previous analyses")
         result = reanalyze_run(args.run, bootstrap_samples=args.bootstrap_samples, seed=args.seed)
         write_json(args.output, result)
+    elif args.command == "judge-controls":
+        fixtures = [JudgeControl.model_validate(c) for c in
+                    json.loads(args.controls.read_text(encoding="utf-8-sig"))]
+        config = yaml.safe_load(args.config.read_text(encoding="utf-8-sig"))
+        result = run_controls(fixtures, config["judge"], args.output, execute=args.execute,
+                              max_requests=args.max_requests, resume=args.resume, seed=args.seed)
     elif args.command == "prepare":
         result = prepare_study(read_jsonl(args.scenarios, Scenario), read_jsonl(args.responses, Response),
                                args.output, raters=args.raters, judgments_per_pair=args.judgments_per_pair,

@@ -62,6 +62,8 @@ reference with explicit coverage, disagreement and provenance.
 The [judge audit guide](docs/judge_audit.md) includes the Astra comparison configuration,
 human-reference commands and offline reanalysis. The original acceptance rule is retained.
 All-tie reports state that no winner is established; collapsed bootstrap intervals are withheld.
+The separate [constructed judge controls](docs/judge_controls.md) check sensitivity to
+clear violations and equivalent text. They never enter the candidate ranking.
 
 ## Study infrastructure from v0.3
 
