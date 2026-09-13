@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BUNDLE_PATH = ROOT / "data/web/demo_bundle.json"
 REPORT_PATH = ROOT / "data/web/demo_report.json"
 STATIC = {"/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
+          "/annotation.js": ("annotation.js", "text/javascript"),
           "/styles.css": ("styles.css", "text/css")}
 
 

@@ -39,3 +39,5 @@ Pooling more scenarios does not establish representativeness or human alignment.
 ```
 
 Results includes the primary estimates and exclusion sensitivity. Judge audit shows raw rationales. If an old annotation packet is remembered in your browser, export any work first, then use **Load packet** to open your new assigned packet. Send only the public packet directory to raters; keep the private mapping and model report out of their blind annotation session.
+
+For recruited participants, use the [separate rater-only site](human_validation.md) so the workbench results and judge audit are not available in their annotation session.

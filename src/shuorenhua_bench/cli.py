@@ -14,6 +14,7 @@ from .dataset import read_jsonl, write_jsonl
 from .judge_audit import compare_judges, reanalyze_run
 from .judge_controls import JudgeControl, run_controls
 from .leaderboard.aggregate import aggregate
+from .rater_site import prepare_rater_site
 from .schemas import Pair, Response, Scenario
 from .study import import_judgments, prepare_study, verify_study, write_json
 
@@ -67,6 +68,10 @@ def main():
     prepare.add_argument("--judgments-per-pair", type=int, default=3)
     prepare.add_argument("--seed", type=int, default=20260913)
     prepare.add_argument("--name", default="Chinese communication study")
+    rater_site = sub.add_parser("rater-site", help="Build a frozen rater-only site with individual assignment links")
+    rater_site.add_argument("--study", type=Path, required=True)
+    rater_site.add_argument("--output", type=Path, required=True)
+    rater_site.add_argument("--base-url", default="http://127.0.0.1:8044")
     evaluate = sub.add_parser("evaluate", help="Verify study, resolve blind exports and report")
     evaluate.add_argument("--study", type=Path, required=True)
     evaluate.add_argument("--exports", type=Path, nargs="+", required=True)
@@ -131,6 +136,8 @@ def main():
         result = prepare_study(read_jsonl(args.scenarios, Scenario), read_jsonl(args.responses, Response),
                                args.output, raters=args.raters, judgments_per_pair=args.judgments_per_pair,
                                seed=args.seed, study_name=args.name)
+    elif args.command == "rater-site":
+        result = prepare_rater_site(args.study, args.output, base_url=args.base_url)
     elif args.command == "evaluate":
         manifest = verify_study(args.study)
         judgments, duplicates = import_judgments(args.study, args.exports)

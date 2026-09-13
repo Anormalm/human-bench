@@ -127,8 +127,9 @@ error or human population preferences. Judge-predicted direct use is labeled sep
 
 ## Validate with people
 
-Human packets are frozen before judge calls. Distribute the three packets to three
-independent raters and collect exported JSONL files. Then:
+Human packets are frozen before judge calls. Use the [rater-only workflow](human_validation.md)
+to give independent raters their assignments without exposing model results or judge rationales.
+Collect the exported JSONL files. For a three-rater pilot:
 
 ~~~powershell
 .\.venv\Scripts\python.exe -m shuorenhua_bench.cli evaluate --study studies/first-model-run/human-study --exports exports/rater-001.jsonl exports/rater-002.jsonl exports/rater-003.jsonl --output studies/first-model-run/human-report.json

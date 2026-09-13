@@ -218,3 +218,5 @@ See [CHANGELOG](CHANGELOG.md), [benchmark card](docs/benchmark_card.md),
 
 For larger model screens, [combine completed batches](docs/combine_runs.md) with
 verified provenance, one fixed judge identity, and a separate exclusion-sensitivity analysis.
+
+Use the [rater-only human-validation workflow](docs/human_validation.md) to collect independent judgments with assigned links and verified exports.
