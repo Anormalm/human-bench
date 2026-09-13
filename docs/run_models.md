@@ -37,6 +37,24 @@ mechanics; it does not select current frontier models or establish a scientific 
 The judge shares a family with both candidates and is itself one candidate, which can
 bias results. Select and freeze an independent judge for a serious study.
 
+## Three-candidate pilot
+
+A ready-to-run profile compares GPT-5.6 Sol, Terra and Luna with the same Astra judge
+and low reasoning effort for every candidate. Preview it from the repository root:
+
+~~~powershell
+.\.venv\Scripts\python.exe -m shuorenhua_bench.cli run --scenarios data/prompts/suite_zh_v0.3.jsonl --config configs/benchmark.gpt56-pilot.yaml --output studies/gpt56-candidates-pilot --limit 3
+~~~
+
+Append --execute --max-requests 40 to generate nine responses and run eighteen judge
+checks. Use --resume for the exact same completed run. The model identifiers are aliases;
+requested and returned IDs are recorded, but these do not pin immutable backend revisions.
+
+The completed local pilot accepted all nine comparisons as ties. It made 27 API calls
+and established no winner on three independent scenarios. These candidates were compared
+against each other, not directly against the earlier GPT-4.1 candidates. The judge remains
+from the same provider; independent human validation is still needed.
+
 ## Configure your own experiment
 
 Open the workbench's **Run models** page to enter model IDs and download bench-config.json.
