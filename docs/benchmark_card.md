@@ -1,4 +1,4 @@
-# Benchmark card · v0.4
+# Benchmark card · v0.5
 
 | Property | Current release |
 |---|---|
@@ -16,6 +16,7 @@
 | Population validity | Not yet established |
 | Protected holdout | Not included |
 | Automatic judge | Optional single model; two-order agreement filter; separate screening report, raw decisions and human validation packets. See [run guide](run_models.md). |
+| Judge validation | Offline comparison on identical texts, separate preference/action consistency, optional human-majority agreement with coverage and input hashes. See [judge audit](judge_audit.md). |
 | SOTA claim | None; this is study infrastructure |
 
 Read the [research protocol](research_protocol_v03.md) for the estimator, limitations,

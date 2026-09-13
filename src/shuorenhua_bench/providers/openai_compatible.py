@@ -72,7 +72,7 @@ class OpenAICompatibleProvider:
             request = urllib.request.Request(
                 self.config.base_url.rstrip("/") + "/chat/completions", data=encoded,
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json",
-                         "User-Agent": "shuorenhua-bench/0.4"}, method="POST")
+                         "User-Agent": "shuorenhua-bench/0.5"}, method="POST")
             try:
                 with urllib.request.urlopen(request, timeout=self.config.timeout_seconds) as response:
                     body = json.loads(response.read().decode("utf-8"))

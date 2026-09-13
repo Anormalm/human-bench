@@ -84,6 +84,48 @@ def _normalize(decision, flipped):
             decision.action_a if flipped else decision.action_b)
 
 
+def decode_decision(record):
+    if record is None:
+        return None
+    try:
+        return JudgeDecision.model_validate_json(record["raw_output"], strict=True)
+    except (KeyError, ValueError):
+        return None
+
+
+def compare_orders(forward, reverse):
+    """Diagnose outcomes independently while retaining the frozen all-outcome acceptance rule."""
+    result = {"preference_agrees": None, "action_a_agrees": None, "action_b_agrees": None,
+              "actions_agree": None, "stable_preference": None, "accepted": False,
+              "confidence": None}
+    if forward is None or reverse is None:
+        return dict(result, status="invalid_output", exclusion_reason="invalid_judge_output")
+    if "abstain" in (forward.preference, reverse.preference):
+        return dict(result, status="abstained", exclusion_reason="judge_abstained")
+    f, r = _normalize(forward, False), _normalize(reverse, True)
+    preference = f[0] == r[0]
+    action_a, action_b = f[1] == r[1], f[2] == r[2]
+    accepted = preference and action_a and action_b
+    status = ("accepted" if accepted else "actions_changed" if preference else
+              "preference_changed" if action_a and action_b else "preference_and_actions_changed")
+    return {"preference_agrees": preference, "action_a_agrees": action_a,
+            "action_b_agrees": action_b, "actions_agree": action_a and action_b,
+            "stable_preference": f[0] if preference else None, "accepted": accepted,
+            "confidence": min(forward.confidence, reverse.confidence), "status": status,
+            "exclusion_reason": None if accepted else "order_sensitive_decision"}
+
+
+def summarize_order_checks(checks):
+    comparable = [c for c in checks if c["preference_agrees"] is not None]
+    return {"n_pairs": len(checks), "n_comparable_pairs": len(comparable),
+            "n_preference_consistent": sum(c["preference_agrees"] for c in comparable),
+            "n_actions_consistent": sum(c["actions_agree"] for c in comparable),
+            "n_accepted": sum(c["accepted"] for c in checks),
+            "status_counts": dict(Counter(c["status"] for c in checks)),
+            "interpretation": "Preference and action consistency are separate diagnostics. "
+                              "Ranking still requires agreement on all three outcomes."}
+
+
 def judge_pairs(scenarios, responses, pairs, config, output, *, resume=False,
                 before_request=None):
     require_valid(scenarios, responses, pairs)
@@ -111,7 +153,7 @@ def judge_pairs(scenarios, responses, pairs, config, output, *, resume=False,
         if record.get("sha256") != digest({k: v for k, v in record.items() if k != "sha256"}):
             raise ValueError("judge cache hash mismatch")
     provider = OpenAICompatibleProvider(provider_config, before_request)
-    judgments, exclusions = [], []
+    judgments, exclusions, checks = [], [], []
     for pair in pairs:
         decisions = []
         for flipped, order in ((False, "forward"), (True, "reverse")):
@@ -135,17 +177,10 @@ def judge_pairs(scenarios, responses, pairs, config, output, *, resume=False,
             if (record["response_a"], record["response_b"], record["input_hash"]) != (
                     a, b, stable_hash(RUBRIC + "\0" + prompt)):
                 raise ValueError("judge cached display does not match this run")
-            try:
-                decisions.append(JudgeDecision.model_validate_json(record["raw_output"], strict=True))
-            except ValueError:
-                decisions.append(None)
-        if any(d is None for d in decisions):
-            reason = "invalid_judge_output"
-        elif any(d.preference == "abstain" for d in decisions):
-            reason = "judge_abstained"
-        elif _normalize(decisions[0], False) != _normalize(decisions[1], True):
-            reason = "order_sensitive_decision"
-        else:
+            decisions.append(decode_decision(record))
+        check = compare_orders(*decisions)
+        checks.append(dict(check, pair_id=pair.pair_id))
+        if check["accepted"]:
             decision = decisions[0]
             judgments.append(PairwiseJudgment(
                 pair_id=pair.pair_id, scenario_id=pair.scenario_id,
@@ -154,7 +189,8 @@ def judge_pairs(scenarios, responses, pairs, config, output, *, resume=False,
                 action_a=decision.action_a, action_b=decision.action_b,
                 confidence=min(d.confidence for d in decisions), evidence_kind="model"))
             continue
-        exclusions.append({"pair_id": pair.pair_id, "reason": reason})
+        exclusions.append({"pair_id": pair.pair_id, "reason": check["exclusion_reason"],
+                           "detail": check["status"]})
     atomic_json(cache_path, cache)
     summary = {
         "rubric_version": RUBRIC_VERSION, "protocol_hash": fingerprint,
@@ -169,6 +205,7 @@ def judge_pairs(scenarios, responses, pairs, config, output, *, resume=False,
         "acceptance_rule": "Both display orders must agree on preference and both actions.",
         "interpretation": "One fixed judge, two dependent checks per pair, at most one ranking vote.",
         "raw_observations": "judge/observations.json",
+        "order_diagnostics": summarize_order_checks(checks), "pair_diagnostics": checks,
     }
     return judgments, summary
 
@@ -188,7 +225,6 @@ def automatic_report(scenarios, responses, pairs, judgments, judge_summary, *,
     if judgments and len(components) == 1:
         report = aggregate(judgments, responses, scenarios=scenarios, pairs=pairs, min_raters=1,
                            fit_position=False, bootstrap_samples=bootstrap_samples, seed=seed)
-        report["ranking_status"] = "available"
     else:
         report = {
             "schema_version": "0.3", "evidence_kind": "model_judged",
@@ -217,6 +253,7 @@ def automatic_report(scenarios, responses, pairs, judgments, judge_summary, *,
                          "MODEL-JUDGED screening, not human preference evidence."],
         }
     report["automatic_judge"] = judge_summary
+    report["analysis_version"] = "0.5.0"
     report["warnings"].append("Results are conditional on comparisons accepted by both display orders. "
                               "Exclusions may change the system ranking; inspect raw observations.")
     if any(r.manifest and r.manifest.model == judge_summary["requested_model"] for r in responses):

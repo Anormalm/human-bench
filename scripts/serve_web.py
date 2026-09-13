@@ -19,8 +19,10 @@ def main() -> None:
     parser.add_argument("--port", default=8000, type=int)
     parser.add_argument("--report", type=Path, help="Evaluation report to display")
     parser.add_argument("--bundle", type=Path, help="Assigned annotation packet to display")
+    parser.add_argument("--judge-audit", type=Path, help="Judge comparison audit to display")
     args = parser.parse_args()
-    for name, path in (("SHUORENHUA_REPORT", args.report), ("SHUORENHUA_BUNDLE", args.bundle)):
+    for name, path in (("SHUORENHUA_REPORT", args.report), ("SHUORENHUA_BUNDLE", args.bundle),
+                       ("SHUORENHUA_JUDGE_AUDIT", args.judge_audit)):
         if path is not None:
             if not path.is_file():
                 parser.error(f"file does not exist: {path}")

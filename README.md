@@ -1,4 +1,4 @@
-# 说人话 Bench · v0.4
+# 说人话 Bench · v0.5
 
 **Measure which messages people prefer and would actually use in a specific situation.**
 
@@ -20,7 +20,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe scripts/serve_web.py --port 8043
 ~~~
 
-Open <http://127.0.0.1:8043>. The workbench includes Overview, Run models, Annotate and Results.
+Open <http://127.0.0.1:8043>. The workbench includes Overview, Run models, Annotate, Results and Judge audit.
 A ready-made demonstration is included; no API key is needed.
 
 On macOS/Linux, use .venv/bin/python. For the exact tested dependency set, install
@@ -47,6 +47,21 @@ Automatic predictions, human judgments and synthetic test evidence stay separate
 See [running and interpreting models](docs/run_models.md) for custom providers, reasoning
 models, existing responses, resume rules and human validation. This smoke profile tests
 mechanics with dated baseline snapshots; it is not a frontier-model recommendation.
+
+## Audit and calibrate judges
+
+The **Judge audit** page compares judges on identical saved candidate responses and
+shows preference consistency separately from action consistency. Expand a pair to read
+both display orders and explanations. Optional human exports provide a separate majority
+reference with explicit coverage, disagreement and provenance.
+
+~~~powershell
+.\.venv\Scripts\python.exe -m shuorenhua_bench.cli compare-judges --runs studies/first-model-run studies/astra-judge-pilot --output studies/judge-comparison-v05.json
+~~~
+
+The [judge audit guide](docs/judge_audit.md) includes the Astra comparison configuration,
+human-reference commands and offline reanalysis. The original acceptance rule is retained.
+All-tie reports state that no winner is established; collapsed bootstrap intervals are withheld.
 
 ## Study infrastructure from v0.3
 

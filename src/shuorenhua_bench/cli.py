@@ -10,6 +10,7 @@ import yaml
 from .audit import audit_dataset, plan_sample_size
 from .benchmark_run import run_benchmark
 from .dataset import read_jsonl, write_jsonl
+from .judge_audit import compare_judges, reanalyze_run
 from .leaderboard.aggregate import aggregate
 from .schemas import Pair, Response, Scenario
 from .study import import_judgments, prepare_study, verify_study, write_json
@@ -29,6 +30,19 @@ def main():
     run.add_argument("--execute", action="store_true", help="Make paid API calls; default is preview")
     run.add_argument("--max-requests", type=int, help="Persistent HTTP attempt cap, including retries")
     run.add_argument("--resume", action="store_true")
+    compare = sub.add_parser("compare-judges", help="Audit judges on identical saved responses; no API calls")
+    compare.add_argument("--runs", type=Path, nargs="+", required=True)
+    compare.add_argument("--output", type=Path, required=True)
+    compare.add_argument("--study", type=Path, help="Frozen human study using the same comparisons")
+    compare.add_argument("--exports", type=Path, nargs="+")
+    compare.add_argument("--min-human-raters", type=int, default=3)
+    compare.add_argument("--bootstrap-samples", type=int, default=1000)
+    compare.add_argument("--seed", type=int, default=20260913)
+    reanalyze = sub.add_parser("reanalyze", help="Rebuild a screening report from saved raw observations offline")
+    reanalyze.add_argument("--run", type=Path, required=True)
+    reanalyze.add_argument("--output", type=Path, required=True)
+    reanalyze.add_argument("--bootstrap-samples", type=int, default=1000)
+    reanalyze.add_argument("--seed", type=int, default=20260913)
     prepare = sub.add_parser("prepare", help="Freeze a study and create blinded rater packets")
     prepare.add_argument("--scenarios", type=Path, required=True)
     prepare.add_argument("--responses", type=Path, required=True)
@@ -73,6 +87,21 @@ def main():
             scenarios, yaml.safe_load(args.config.read_text(encoding="utf-8-sig")), args.output,
             execute=args.execute, max_requests=args.max_requests, resume=args.resume,
             bootstrap_samples=args.bootstrap_samples, seed=args.seed, existing_responses=responses)
+    elif args.command == "compare-judges":
+        result = compare_judges(args.runs, study=args.study, exports=args.exports,
+                                min_human_raters=args.min_human_raters,
+                                bootstrap_samples=args.bootstrap_samples, seed=args.seed)
+        write_json(args.output, result)
+        print(json.dumps({"report": str(args.output), "n_pairs": result["n_pairs"],
+                          "evidence_status": result["evidence_status"]}, indent=2))
+        return
+    elif args.command == "reanalyze":
+        if args.bootstrap_samples < 0:
+            parser.error("--bootstrap-samples must be nonnegative")
+        if args.output.exists():
+            parser.error("--output must be a new report path; preserve previous analyses")
+        result = reanalyze_run(args.run, bootstrap_samples=args.bootstrap_samples, seed=args.seed)
+        write_json(args.output, result)
     elif args.command == "prepare":
         result = prepare_study(read_jsonl(args.scenarios, Scenario), read_jsonl(args.responses, Response),
                                args.output, raters=args.raters, judgments_per_pair=args.judgments_per_pair,
@@ -94,7 +123,7 @@ def main():
         result["import"] = {"identical_duplicate_exports_ignored": duplicates,
                             "input_files": [p.name for p in args.exports]}
         result["provenance"] = {"study_hashes": manifest["sha256"],
-                                "analysis_version": "0.3.0"}
+                                "analysis_version": "0.5.0"}
         write_json(args.output, result)
         write_jsonl(args.output.with_suffix(".judgments.jsonl"), judgments)
     elif args.command == "audit":

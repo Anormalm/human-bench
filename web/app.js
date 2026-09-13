@@ -185,7 +185,8 @@ function setReport(x) {
     : "HUMAN JUDGMENTS · Interpretation depends on study design, participant recruitment and the evidence checks below.";
   $("directUseHeading").textContent = modelJudged ? "Judge-predicted direct use" : "Direct use";
   $("uncertaintyCaption").textContent = "Ability is a relative log-strength estimate. " + x.uncertainty.scope;
-  $("reportNotice").textContent = notice; $("evidenceNotice").textContent = notice;
+  const statusNotice = x.ranking_status === "no_separation" ? " ALL OBSERVED PREFERENCES ARE TIES · No winner established." : "";
+  $("reportNotice").textContent = notice + statusNotice; $("evidenceNotice").textContent = notice + statusNotice;
   const values = [[modelJudged ? (x.automatic_judge?.n_scenarios_judged ?? x.sample.n_scenarios) : x.sample.n_scenarios,
     modelJudged ? "Scenarios judged" : "Scenarios in this report"], [Object.keys(x.systems).length, "Systems compared"],
     [x.sample.n_judgments, modelJudged ? "Accepted model judgments" : synthetic ? "Synthetic demo judgments" : "Human judgments"],
@@ -228,7 +229,7 @@ function setReport(x) {
     $("checks").append(checkLine("Judge", x.automatic_judge.requested_model),
       checkLine("Accepted comparisons", x.automatic_judge.n_accepted_pairs + " / " + x.automatic_judge.n_pairs),
       checkLine("Excluded comparisons", x.automatic_judge.n_excluded_pairs),
-      checkLine("Ranking", x.ranking_status === "withheld" ? "Withheld" : "Screening estimate"));
+      checkLine("Ranking", x.ranking_status === "withheld" ? "Withheld" : x.ranking_status === "no_separation" ? "All ties · no winner" : "Screening estimate"));
   }
   $("warnings").replaceChildren(...x.warnings.map(w => node("li", w)));
   renderSlices();
@@ -257,6 +258,7 @@ getJson("/api/report").then(setReport).catch(() => {
 function runSetup() {
   const count = Number($("runCount").value);
   const reasoning = $("runReasoning").value === "reasoning";
+  const judgeReasoning = $("runJudgeReasoning").value === "reasoning";
   const endpoint = $("runEndpoint").value.trim(), keyEnv = $("runKeyEnv").value.trim();
   const url = new URL(endpoint);
   if (!(url.protocol === "https:" || (url.protocol === "http:" &&
@@ -270,11 +272,15 @@ function runSetup() {
     temperature: reasoning ? null : 0.2, top_p: reasoning ? null : 1,
     max_tokens: reasoning ? 4096 : 512, token_parameter: reasoning ? "max_completion_tokens" : "max_tokens"};
   if (reasoning) common.reasoning_effort = "low";
+  const judgeProfile = {...common, temperature: judgeReasoning ? null : 0,
+    top_p: judgeReasoning ? null : 1, max_tokens: judgeReasoning ? 4096 : 768,
+    token_parameter: judgeReasoning ? "max_completion_tokens" : "max_tokens"};
+  if (judgeReasoning) judgeProfile.reasoning_effort = "low";
+  else delete judgeProfile.reasoning_effort;
   return {count, config: {
     system_prompt: "你正在替用户撰写一条真实沟通消息。严格依据场景、关系、渠道和事实作答；不新增事实或承诺，只输出正文。",
     systems: models.slice(0, 2).map((model, i) => ({...common, system_id: "model-" + (i ? "b" : "a"), model})),
-    judge: {...common, model: models[2], max_tokens: reasoning ? 4096 : 768,
-      response_format: $("runFormat").value}
+    judge: {...judgeProfile, model: models[2], response_format: $("runFormat").value}
   }};
 }
 function updateRunPlan() {
@@ -296,3 +302,95 @@ $("downloadRunConfig").onclick = () => {
   } catch (e) { error(e.message); }
 };
 updateRunPlan();
+
+let judgeAudit = null, judgeAuditPage = 0;
+function setJudgeAudit(x) {
+  if (!x || x.schema_version !== "0.5" || x.report_kind !== "judge_audit" ||
+      !x.judges || !Array.isArray(x.pairs) || !Array.isArray(x.cross_judge) ||
+      !Array.isArray(x.warnings) || x.pairs.length > 100000) {
+    throw new Error("Expected a v0.5 judge audit.");
+  }
+  for (const j of Object.values(x.judges)) {
+    if (!j.order_diagnostics || !j.human_comparison) throw new Error("Audit is missing judge diagnostics.");
+  }
+  for (const p of x.pairs) {
+    if (!p.candidate_a || !p.candidate_b || !p.judges) throw new Error("Audit is missing comparison data.");
+    for (const [key, result] of Object.entries(p.judges)) {
+      if (!x.judges[key] || !Array.isArray(result.observations)) throw new Error("Invalid judge observations.");
+    }
+  }
+  judgeAudit = x; judgeAuditPage = 0;
+  $("judgeAuditNotice").textContent = x.evidence_status === "human_reference_available"
+    ? "HUMAN REFERENCE AVAILABLE · Agreement is conditional on the recruited raters and comparisons with a clear majority."
+    : "HUMAN CALIBRATION PENDING · This audit measures model repeatability and agreement. It does not establish judge accuracy.";
+  stats("judgeAuditStats", [[x.n_scenarios, "Fixed scenarios"], [Object.keys(x.judges).length, "Judge configurations"],
+    [x.n_pairs, "Identical comparisons"], [x.n_human_judgments, "Human judgments"]]);
+  $("judgeAuditRows").replaceChildren(...Object.values(x.judges).map(j => {
+    const d = j.order_diagnostics, h = j.human_comparison;
+    const row = node("tr"), name = node("td", j.requested_model);
+    name.append(node("small", j.run_label));
+    const agreement = node("td", pct(h.agreement));
+    agreement.append(node("small", h.n_comparable_pairs + " comparable / " + h.n_reference_pairs + " reference pairs"));
+    row.append(name, node("td", d.n_preference_consistent + " / " + d.n_comparable_pairs),
+      node("td", d.n_actions_consistent + " / " + d.n_comparable_pairs),
+      node("td", j.n_accepted_pairs + " / " + j.n_pairs), agreement);
+    return row;
+  }));
+  $("crossJudgeChecks").replaceChildren(...x.cross_judge.map(c => checkLine(
+    x.judges[c.judge_a].requested_model + " ↔ " + x.judges[c.judge_b].requested_model,
+    pct(c.agreement) + " preference agreement · " + c.n_comparable_pairs + " / " + c.n_expected_pairs + " pairs comparable")));
+  $("judgeAuditWarnings").replaceChildren(...x.warnings.map(w => node("li", w)));
+  renderJudgeAuditPairs();
+}
+function renderJudgeAuditPairs() {
+  if (!judgeAudit) return;
+  const filter = $("auditFilter").value;
+  const pairs = judgeAudit.pairs.filter(p => filter === "all" ||
+    (filter === "human" ? Boolean(p.human_reference) : Object.values(p.judges).some(j => !j.accepted)));
+  const pageCount = Math.max(1, Math.ceil(pairs.length / 20));
+  judgeAuditPage = Math.min(judgeAuditPage, pageCount - 1);
+  $("auditPrevious").disabled = judgeAuditPage === 0;
+  $("auditNext").disabled = judgeAuditPage >= pageCount - 1;
+  $("auditPageStatus").textContent = pairs.length ? "Page " + (judgeAuditPage + 1) + " / " + pageCount + " · " + pairs.length + " comparisons" : "0 comparisons";
+  $("judgeAuditPairs").replaceChildren(...pairs.slice(judgeAuditPage * 20, (judgeAuditPage + 1) * 20).map(p => {
+    const card = node("details", undefined, "panel audit-pair");
+    card.append(node("summary", p.scenario_id + " · " + p.candidate_a.system + " vs " + p.candidate_b.system));
+    card.append(node("p", p.context), node("p", p.instruction, "muted"));
+    card.append(node("p", "Required facts: " + p.required_facts.join("; ") +
+      " · Constraints: " + p.prohibited_changes.join("; "), "caption"));
+    const candidates = node("div", undefined, "responses");
+    for (const [side, candidate] of [["A", p.candidate_a], ["B", p.candidate_b]]) {
+      const el = node("article", undefined, "response");
+      el.append(node("strong", side + " · " + candidate.system), node("p", candidate.text)); candidates.append(el);
+    }
+    card.append(candidates);
+    for (const [key, result] of Object.entries(p.judges)) {
+      const block = node("div", undefined, "judge-observations");
+      block.append(node("h3", judgeAudit.judges[key].requested_model + " · " + result.status.replaceAll("_", " ")));
+      for (const o of result.observations) {
+        const display = o.displayed_first === "A" ? "A → B" : "B → A";
+        const detail = node("div", undefined, "judge-check");
+        detail.append(node("strong", "Display " + display + " · Choice " + (o.preference || o.status) +
+          " · Actions A / B: " + (o.action_a || "—") + " / " + (o.action_b || "—")));
+        detail.append(node("p", o.rationale || o.raw_output || "Observation missing."));
+        block.append(detail);
+      }
+      block.append(node("small", "Choices and actions above use the candidate labels on this page. A/B inside explanations refer to that check's displayed positions.", "muted"));
+      card.append(block);
+    }
+    if (p.human_reference) {
+      const h = p.human_reference;
+      card.append(node("p", "Human reference: " + (h.majority || h.status.replaceAll("_", " ")) +
+        " · " + h.n_raters + " raters · " + JSON.stringify(h.votes), "caption"));
+    }
+    return card;
+  }));
+  if (!pairs.length) $("judgeAuditPairs").append(node("p", "No pairs match this filter.", "muted"));
+}
+$("auditFilter").onchange = () => { judgeAuditPage = 0; renderJudgeAuditPairs(); };
+$("auditPrevious").onclick = () => { if (judgeAuditPage > 0) judgeAuditPage--; renderJudgeAuditPairs(); };
+$("auditNext").onclick = () => { judgeAuditPage++; renderJudgeAuditPairs(); };
+$("judgeAuditFile").onchange = e => importFile(e, x => { setJudgeAudit(x); go("judgeAudit"); });
+getJson("/api/judge-audit").then(setJudgeAudit).catch(() => {
+  $("judgeAuditNotice").textContent = "No judge audit loaded. Run compare-judges on saved runs, then import its JSON report.";
+});

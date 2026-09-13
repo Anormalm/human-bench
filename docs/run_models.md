@@ -1,6 +1,6 @@
 # Run models and rank them
 
-Version 0.4 adds one automatic workflow. Model-generated judgments are screening
+Version 0.4 introduced the automatic workflow. Version 0.5 adds [judge audits and offline reanalysis](judge_audit.md). Model-generated judgments are screening
 predictions; they are kept separate from human observations.
 
 ## First run on Windows
@@ -42,6 +42,9 @@ bias results. Select and freeze an independent judge for a serious study.
 Open the workbench's **Run models** page to enter model IDs and download bench-config.json.
 Save it in the repository folder and use the generated commands. The page creates
 configuration only; API requests run in your Python process. It never receives API keys.
+Candidate and judge parameter profiles are independent. The browser defaults to standard
+chat candidates and a low-effort Astra judge; the YAML smoke preset above retains the
+original GPT-4.1 judge for comparison.
 
 The YAML/JSON config has a shared system_prompt, a systems list and one judge entry.
 Add more systems in the file to compare more than two. Each system supports its own

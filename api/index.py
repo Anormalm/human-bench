@@ -32,10 +32,17 @@ def app(environ: dict, start_response: Callable) -> Iterable[bytes]:
                          b'{"error":"read-only interface"}')
     if path == "/health":
         return _response(start_response, "200 OK", "application/json",
-                         json.dumps({"status": "ok", "service": "shuorenhua-bench", "version": "0.4.0"}).encode())
+                         json.dumps({"status": "ok", "service": "shuorenhua-bench", "version": "0.5.0"}).encode())
     if path in STATIC:
         file, mime = STATIC[path]
         return _response(start_response, "200 OK", mime, (ROOT / "web" / file).read_bytes())
+    if path == "/api/judge-audit":
+        configured = os.environ.get("SHUORENHUA_JUDGE_AUDIT")
+        target = Path(configured) if configured else None
+        if target is not None and target.is_file():
+            return _response(start_response, "200 OK", "application/json", target.read_bytes())
+        return _response(start_response, "503 Service Unavailable", "application/json",
+                         b'{"error":"judge audit not configured"}')
     if path in {"/api/bundle", "/api/report"}:
         target = (Path(os.environ.get("SHUORENHUA_BUNDLE", str(BUNDLE_PATH))) if path == "/api/bundle"
                   else Path(os.environ.get("SHUORENHUA_REPORT", str(REPORT_PATH))))
