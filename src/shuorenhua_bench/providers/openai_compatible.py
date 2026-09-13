@@ -5,6 +5,7 @@ import os
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlsplit
@@ -16,17 +17,22 @@ class ProviderConfig:
     model: str
     base_url: str
     api_key_env: str
-    temperature: float = 0.2
-    top_p: float = 1.0
+    temperature: float | None = 0.2
+    top_p: float | None = 1.0
     max_tokens: int = 512
     timeout_seconds: float = 90.0
     retries: int = 3
+    token_parameter: str = "max_tokens"
+    reasoning_effort: str | None = None
 
     def __post_init__(self):
         if not self.system_id or not self.model or self.retries < 1 or self.timeout_seconds <= 0:
             raise ValueError("invalid provider identity, retries or timeout")
-        if self.temperature < 0 or not 0 < self.top_p <= 1 or self.max_tokens < 1:
+        if (self.temperature is not None and self.temperature < 0
+                or self.top_p is not None and not 0 < self.top_p <= 1 or self.max_tokens < 1):
             raise ValueError("invalid decoding configuration")
+        if self.token_parameter not in {"max_tokens", "max_completion_tokens"}:
+            raise ValueError("invalid token parameter")
         endpoint = urlsplit(self.base_url)
         if not (endpoint.scheme == "https" and endpoint.hostname
                 or endpoint.scheme == "http" and endpoint.hostname in {"localhost", "127.0.0.1", "::1"}):
@@ -36,10 +42,12 @@ class ProviderConfig:
 class OpenAICompatibleProvider:
     """Bounded retries, no retry on auth/client errors, no silent truncation."""
 
-    def __init__(self, config: ProviderConfig):
+    def __init__(self, config: ProviderConfig, before_request: Callable | None = None):
         self.config = config
+        self.before_request = before_request
 
-    def generate(self, *, system_prompt: str, user_prompt: str) -> tuple[str, dict[str, Any]]:
+    def generate(self, *, system_prompt: str, user_prompt: str,
+                 response_format: dict | None = None) -> tuple[str, dict[str, Any]]:
         api_key = os.environ.get(self.config.api_key_env)
         if not api_key:
             raise RuntimeError(f"missing API key environment variable: {self.config.api_key_env}")
@@ -47,16 +55,24 @@ class OpenAICompatibleProvider:
             "model": self.config.model,
             "messages": [{"role": "system", "content": system_prompt},
                          {"role": "user", "content": user_prompt}],
-            "temperature": self.config.temperature, "top_p": self.config.top_p,
-            "max_tokens": self.config.max_tokens,
+            self.config.token_parameter: self.config.max_tokens,
         }
+        for field in ("temperature", "top_p", "reasoning_effort"):
+            value = getattr(self.config, field)
+            if value is not None:
+                payload[field] = value
+        if response_format is not None:
+            payload["response_format"] = response_format
         encoded = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         started = time.monotonic()
         for attempt in range(self.config.retries):
+            # Reserve BEFORE sending, including retries and attempts with unknown outcomes.
+            if self.before_request:
+                self.before_request(self.config, payload)
             request = urllib.request.Request(
                 self.config.base_url.rstrip("/") + "/chat/completions", data=encoded,
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json",
-                         "User-Agent": "shuorenhua-bench/0.3"}, method="POST")
+                         "User-Agent": "shuorenhua-bench/0.5"}, method="POST")
             try:
                 with urllib.request.urlopen(request, timeout=self.config.timeout_seconds) as response:
                     body = json.loads(response.read().decode("utf-8"))

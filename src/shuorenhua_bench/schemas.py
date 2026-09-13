@@ -112,4 +112,4 @@ class PairwiseJudgment(StrictModel):
     spans: list[ProblemSpan] = Field(default_factory=list)
     study_id: str | None = None
     assignment_id: str | None = None
-    evidence_kind: Literal["human", "synthetic"] = "human"
+    evidence_kind: Literal["human", "model", "synthetic"] = "human"

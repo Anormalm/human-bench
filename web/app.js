@@ -179,12 +179,18 @@ function setReport(x) {
     throw new Error("Expected a v0.3 evaluation report.");
   }
   report = x;
-  const synthetic = x.evidence_kind !== "human";
-  const notice = synthetic ? "SOFTWARE DEMONSTRATION · All votes in this report are synthetic. These are not model performance results."
+  const modelJudged = x.evidence_kind === "model_judged";
+  const synthetic = !modelJudged && x.evidence_kind !== "human";
+  const notice = modelJudged ? "MODEL-JUDGED SCREENING · Predictions from one model judge. These are not human preference measurements." : synthetic ? "SOFTWARE DEMONSTRATION · All votes in this report are synthetic. These are not model performance results."
     : "HUMAN JUDGMENTS · Interpretation depends on study design, participant recruitment and the evidence checks below.";
-  $("reportNotice").textContent = notice; $("evidenceNotice").textContent = notice;
-  const values = [[x.sample.n_scenarios, "Scenarios in this report"], [Object.keys(x.systems).length, "Systems compared"],
-    [x.sample.n_judgments, synthetic ? "Synthetic demo judgments" : "Human judgments"], [x.uncertainty.n_independent_groups, "Independent scenario groups"]];
+  $("directUseHeading").textContent = modelJudged ? "Judge-predicted direct use" : "Direct use";
+  $("uncertaintyCaption").textContent = "Ability is a relative log-strength estimate. " + x.uncertainty.scope;
+  const statusNotice = x.ranking_status === "no_separation" ? " ALL OBSERVED PREFERENCES ARE TIES · No winner established." : "";
+  $("reportNotice").textContent = notice + statusNotice; $("evidenceNotice").textContent = notice + statusNotice;
+  const values = [[modelJudged ? (x.automatic_judge?.n_scenarios_judged ?? x.sample.n_scenarios) : x.sample.n_scenarios,
+    modelJudged ? "Scenarios judged" : "Scenarios in this report"], [Object.keys(x.systems).length, "Systems compared"],
+    [x.sample.n_judgments, modelJudged ? "Accepted model judgments" : synthetic ? "Synthetic demo judgments" : "Human judgments"],
+    [x.uncertainty.n_independent_groups, modelJudged ? "Independent groups with judgments" : "Independent scenario groups"]];
   stats("reportStats", values); stats("overviewStats", values);
   const entries = Object.entries(x.systems).sort((a, b) => (b[1].ability ?? -Infinity) - (a[1].ability ?? -Infinity));
   const all = entries.flatMap(([, s]) => s.ability_95ci_cluster_bootstrap || [s.ability]).filter(Number.isFinite);
@@ -200,7 +206,7 @@ function setReport(x) {
     estimate.append(plot, text); cell.append(estimate); row.append(cell);
     const direct = node("td", pct(s.direct_use_rate));
     if (s.direct_use_95ci_cluster_bootstrap) direct.append(node("small", s.direct_use_95ci_cluster_bootstrap.map(pct).join(" – ")));
-    row.append(direct, node("td", s.wins + " / " + s.ties + " / " + s.losses), node("td", s.n_unique_response_rater_actions));
+    row.append(direct, node("td", s.wins + " / " + s.ties + " / " + s.losses), node("td", s.n_unique_response_rater_actions ?? "—"));
     return row;
   }));
   $("contrasts").replaceChildren(...x.contrasts.map(c => {
@@ -213,11 +219,18 @@ function setReport(x) {
   }));
   const u = x.uncertainty;
   $("checks").replaceChildren(
-    checkLine("Optimizer", x.pairwise_model.converged ? "Converged" : "Not converged"),
+    checkLine("Optimizer", x.ranking_status === "withheld" ? "Not fitted" : x.pairwise_model.converged ? "Converged" : "Not converged"),
     checkLine("Bootstrap fits", u.successful_model_samples + " / " + u.requested_samples),
     checkLine("Position adjustment", x.pairwise_model.position_adjusted ? "Included" : "Not identifiable / off"),
-    checkLine("Under-annotated pairs", x.coverage.under_annotated_pairs.length),
-    checkLine("Pairwise agreement", pct(x.agreement.mean_pairwise_agreement)));
+    checkLine(modelJudged ? "Unresolved pairs" : "Under-annotated pairs", x.coverage.under_annotated_pairs.length),
+    checkLine(modelJudged ? "Two-order agreement" : "Pairwise agreement",
+      pct(modelJudged ? x.automatic_judge?.accepted_fraction : x.agreement.mean_pairwise_agreement)));
+  if (x.automatic_judge) {
+    $("checks").append(checkLine("Judge", x.automatic_judge.requested_model),
+      checkLine("Accepted comparisons", x.automatic_judge.n_accepted_pairs + " / " + x.automatic_judge.n_pairs),
+      checkLine("Excluded comparisons", x.automatic_judge.n_excluded_pairs),
+      checkLine("Ranking", x.ranking_status === "withheld" ? "Withheld" : x.ranking_status === "no_separation" ? "All ties · no winner" : "Screening estimate"));
+  }
   $("warnings").replaceChildren(...x.warnings.map(w => node("li", w)));
   renderSlices();
 }
@@ -240,4 +253,144 @@ try {
 getJson("/api/report").then(setReport).catch(() => {
   $("evidenceNotice").textContent = "No evaluation report loaded. Import a report on the Results page.";
   $("reportNotice").textContent = "Import a v0.3 report to inspect results.";
+});
+
+function runSetup() {
+  const count = Number($("runCount").value);
+  const reasoning = $("runReasoning").value === "reasoning";
+  const judgeReasoning = $("runJudgeReasoning").value === "reasoning";
+  const endpoint = $("runEndpoint").value.trim(), keyEnv = $("runKeyEnv").value.trim();
+  const url = new URL(endpoint);
+  if (!(url.protocol === "https:" || (url.protocol === "http:" &&
+        ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)))) {
+    throw new Error("Use HTTPS or a local inference endpoint.");
+  }
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(keyEnv)) throw new Error("Enter an environment variable name.");
+  const models = [$("runModelA").value.trim(), $("runModelB").value.trim(), $("runJudge").value.trim()];
+  if (models.some(x => !x)) throw new Error("Enter both candidate models and a judge.");
+  const common = {base_url: endpoint, api_key_env: keyEnv, retries: 2,
+    temperature: reasoning ? null : 0.2, top_p: reasoning ? null : 1,
+    max_tokens: reasoning ? 4096 : 512, token_parameter: reasoning ? "max_completion_tokens" : "max_tokens"};
+  if (reasoning) common.reasoning_effort = "low";
+  const judgeProfile = {...common, temperature: judgeReasoning ? null : 0,
+    top_p: judgeReasoning ? null : 1, max_tokens: judgeReasoning ? 4096 : 768,
+    token_parameter: judgeReasoning ? "max_completion_tokens" : "max_tokens"};
+  if (judgeReasoning) judgeProfile.reasoning_effort = "low";
+  else delete judgeProfile.reasoning_effort;
+  return {count, config: {
+    system_prompt: "你正在替用户撰写一条真实沟通消息。严格依据场景、关系、渠道和事实作答；不新增事实或承诺，只输出正文。",
+    systems: models.slice(0, 2).map((model, i) => ({...common, system_id: "model-" + (i ? "b" : "a"), model})),
+    judge: {...judgeProfile, model: models[2], response_format: $("runFormat").value}
+  }};
+}
+function updateRunPlan() {
+  const count = Number($("runCount").value);
+  const command = ".\\.venv\\Scripts\\python.exe -m shuorenhua_bench.cli run --scenarios data/prompts/suite_zh_v0.3.jsonl --config bench-config.json --output studies/model-run --limit " + count;
+  $("runPreview").textContent = command;
+  $("runExecute").textContent = command + " --execute --max-requests " + count * 8;
+  $("runPlan").textContent = count * 2 + " generated responses + " + count * 2 +
+    " judge completions → up to " + count + " accepted comparisons. Cap: " + count * 8 +
+    " HTTP attempts, allowing two attempts per completion.";
+}
+$("runCount").onchange = updateRunPlan;
+$("downloadRunConfig").onclick = () => {
+  try {
+    const {config} = runSetup();
+    const url = URL.createObjectURL(new Blob([JSON.stringify(config, null, 2) + "\n"], {type: "application/json"}));
+    const link = node("a"); link.href = url; link.download = "bench-config.json"; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000); clearError();
+  } catch (e) { error(e.message); }
+};
+updateRunPlan();
+
+let judgeAudit = null, judgeAuditPage = 0;
+function setJudgeAudit(x) {
+  if (!x || x.schema_version !== "0.5" || x.report_kind !== "judge_audit" ||
+      !x.judges || !Array.isArray(x.pairs) || !Array.isArray(x.cross_judge) ||
+      !Array.isArray(x.warnings) || x.pairs.length > 100000) {
+    throw new Error("Expected a v0.5 judge audit.");
+  }
+  for (const j of Object.values(x.judges)) {
+    if (!j.order_diagnostics || !j.human_comparison) throw new Error("Audit is missing judge diagnostics.");
+  }
+  for (const p of x.pairs) {
+    if (!p.candidate_a || !p.candidate_b || !p.judges) throw new Error("Audit is missing comparison data.");
+    for (const [key, result] of Object.entries(p.judges)) {
+      if (!x.judges[key] || !Array.isArray(result.observations)) throw new Error("Invalid judge observations.");
+    }
+  }
+  judgeAudit = x; judgeAuditPage = 0;
+  $("judgeAuditNotice").textContent = x.evidence_status === "human_reference_available"
+    ? "HUMAN REFERENCE AVAILABLE · Agreement is conditional on the recruited raters and comparisons with a clear majority."
+    : "HUMAN CALIBRATION PENDING · This audit measures model repeatability and agreement. It does not establish judge accuracy.";
+  stats("judgeAuditStats", [[x.n_scenarios, "Fixed scenarios"], [Object.keys(x.judges).length, "Judge configurations"],
+    [x.n_pairs, "Identical comparisons"], [x.n_human_judgments, "Human judgments"]]);
+  $("judgeAuditRows").replaceChildren(...Object.values(x.judges).map(j => {
+    const d = j.order_diagnostics, h = j.human_comparison;
+    const row = node("tr"), name = node("td", j.requested_model);
+    name.append(node("small", j.run_label));
+    const agreement = node("td", pct(h.agreement));
+    agreement.append(node("small", h.n_comparable_pairs + " comparable / " + h.n_reference_pairs + " reference pairs"));
+    row.append(name, node("td", d.n_preference_consistent + " / " + d.n_comparable_pairs),
+      node("td", d.n_actions_consistent + " / " + d.n_comparable_pairs),
+      node("td", j.n_accepted_pairs + " / " + j.n_pairs), agreement);
+    return row;
+  }));
+  $("crossJudgeChecks").replaceChildren(...x.cross_judge.map(c => checkLine(
+    x.judges[c.judge_a].requested_model + " ↔ " + x.judges[c.judge_b].requested_model,
+    pct(c.agreement) + " preference agreement · " + c.n_comparable_pairs + " / " + c.n_expected_pairs + " pairs comparable")));
+  $("judgeAuditWarnings").replaceChildren(...x.warnings.map(w => node("li", w)));
+  renderJudgeAuditPairs();
+}
+function renderJudgeAuditPairs() {
+  if (!judgeAudit) return;
+  const filter = $("auditFilter").value;
+  const pairs = judgeAudit.pairs.filter(p => filter === "all" ||
+    (filter === "human" ? Boolean(p.human_reference) : Object.values(p.judges).some(j => !j.accepted)));
+  const pageCount = Math.max(1, Math.ceil(pairs.length / 20));
+  judgeAuditPage = Math.min(judgeAuditPage, pageCount - 1);
+  $("auditPrevious").disabled = judgeAuditPage === 0;
+  $("auditNext").disabled = judgeAuditPage >= pageCount - 1;
+  $("auditPageStatus").textContent = pairs.length ? "Page " + (judgeAuditPage + 1) + " / " + pageCount + " · " + pairs.length + " comparisons" : "0 comparisons";
+  $("judgeAuditPairs").replaceChildren(...pairs.slice(judgeAuditPage * 20, (judgeAuditPage + 1) * 20).map(p => {
+    const card = node("details", undefined, "panel audit-pair");
+    card.append(node("summary", p.scenario_id + " · " + p.candidate_a.system + " vs " + p.candidate_b.system));
+    card.append(node("p", p.context), node("p", p.instruction, "muted"));
+    card.append(node("p", "Required facts: " + p.required_facts.join("; ") +
+      " · Constraints: " + p.prohibited_changes.join("; "), "caption"));
+    const candidates = node("div", undefined, "responses");
+    for (const [side, candidate] of [["A", p.candidate_a], ["B", p.candidate_b]]) {
+      const el = node("article", undefined, "response");
+      el.append(node("strong", side + " · " + candidate.system), node("p", candidate.text)); candidates.append(el);
+    }
+    card.append(candidates);
+    for (const [key, result] of Object.entries(p.judges)) {
+      const block = node("div", undefined, "judge-observations");
+      block.append(node("h3", judgeAudit.judges[key].requested_model + " · " + result.status.replaceAll("_", " ")));
+      for (const o of result.observations) {
+        const display = o.displayed_first === "A" ? "A → B" : "B → A";
+        const detail = node("div", undefined, "judge-check");
+        detail.append(node("strong", "Display " + display + " · Choice " + (o.preference || o.status) +
+          " · Actions A / B: " + (o.action_a || "—") + " / " + (o.action_b || "—")));
+        detail.append(node("p", o.rationale || o.raw_output || "Observation missing."));
+        block.append(detail);
+      }
+      block.append(node("small", "Choices and actions above use the candidate labels on this page. A/B inside explanations refer to that check's displayed positions.", "muted"));
+      card.append(block);
+    }
+    if (p.human_reference) {
+      const h = p.human_reference;
+      card.append(node("p", "Human reference: " + (h.majority || h.status.replaceAll("_", " ")) +
+        " · " + h.n_raters + " raters · " + JSON.stringify(h.votes), "caption"));
+    }
+    return card;
+  }));
+  if (!pairs.length) $("judgeAuditPairs").append(node("p", "No pairs match this filter.", "muted"));
+}
+$("auditFilter").onchange = () => { judgeAuditPage = 0; renderJudgeAuditPairs(); };
+$("auditPrevious").onclick = () => { if (judgeAuditPage > 0) judgeAuditPage--; renderJudgeAuditPairs(); };
+$("auditNext").onclick = () => { judgeAuditPage++; renderJudgeAuditPairs(); };
+$("judgeAuditFile").onchange = e => importFile(e, x => { setJudgeAudit(x); go("judgeAudit"); });
+getJson("/api/judge-audit").then(setJudgeAudit).catch(() => {
+  $("judgeAuditNotice").textContent = "No judge audit loaded. Run compare-judges on saved runs, then import its JSON report.";
 });

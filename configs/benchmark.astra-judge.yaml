@@ -1,0 +1,29 @@
+# Exploratory judge comparison; use --responses to reuse fixed candidate texts.
+# API compatibility verified 2026-09-13; gpt-6-astra is an alias, not a dated snapshot.
+system_prompt: 你正在替用户撰写一条真实沟通消息。严格依据给定场景、关系、渠道和事实作答； 不新增事实、承诺或情绪，不解释写作过程，只输出可以直接发送的正文。
+systems:
+- system_id: gpt-4.1-mini
+  model: gpt-4.1-mini-2025-04-14
+  base_url: https://api.openai.com/v1
+  api_key_env: OPENAI_API_KEY
+  temperature: 0.2
+  max_tokens: 512
+  retries: 2
+- system_id: gpt-4.1
+  model: gpt-4.1-2025-04-14
+  base_url: https://api.openai.com/v1
+  api_key_env: OPENAI_API_KEY
+  temperature: 0.2
+  max_tokens: 512
+  retries: 2
+judge:
+  model: gpt-6-astra
+  base_url: https://api.openai.com/v1
+  api_key_env: OPENAI_API_KEY
+  temperature: null
+  max_tokens: 4096
+  retries: 2
+  response_format: json_schema
+  top_p: null
+  token_parameter: max_completion_tokens
+  reasoning_effort: low

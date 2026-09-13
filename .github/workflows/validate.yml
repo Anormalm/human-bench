@@ -20,5 +20,6 @@ jobs:
       - run: python -m ruff check .
       - run: python -m compileall -q api src scripts
       - run: python -m pytest -q
+      - run: python -m shuorenhua_bench.cli run --scenarios data/prompts/suite_zh_v0.3.jsonl --config configs/benchmark.openai-smoke.yaml --output studies/offline-preview --limit 3
       - run: python scripts/run_demo.py --output studies/ci-demo --bootstrap-samples 100
       - run: python -m shuorenhua_bench.cli audit --scenarios data/prompts/suite_zh_v0.3.jsonl --splits data/splits/suite_v03.json --output results/ci-audit.json

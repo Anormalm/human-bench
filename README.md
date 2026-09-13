@@ -1,4 +1,4 @@
-# 说人话 Bench · v0.3
+# 说人话 Bench · v0.5
 
 **Measure which messages people prefer and would actually use in a specific situation.**
 
@@ -20,13 +20,50 @@ python -m venv .venv
 .\.venv\Scripts\python.exe scripts/serve_web.py --port 8043
 ~~~
 
-Open <http://127.0.0.1:8043>. The workbench includes Overview, Annotate and Results.
+Open <http://127.0.0.1:8043>. The workbench includes Overview, Run models, Annotate, Results and Judge audit.
 A ready-made demonstration is included; no API key is needed.
 
 On macOS/Linux, use .venv/bin/python. For the exact tested dependency set, install
 requirements-dev.lock before installing the project with --no-deps.
 
-## What v0.3 adds
+## Run models and get an automatic ranking
+
+Open **Run models** in the browser to configure two candidates and a judge. Or use
+the baseline profile from the repository root:
+
+~~~powershell
+.\.venv\Scripts\python.exe -m shuorenhua_bench.cli run --scenarios data/prompts/suite_zh_v0.3.jsonl --config configs/benchmark.openai-smoke.yaml --output studies/first-model-run --limit 3
+~~~
+
+This previews 6 candidate responses and 6 judge completions without API calls.
+Set OPENAI_API_KEY and append **--execute --max-requests 24** to run it. Add --resume
+after an interruption. Import the resulting report.json into Results.
+
+The runner checks every pair in both orders, keeps one vote only when decisions agree,
+records exclusions, preserves raw judge output, and creates three human-validation packets.
+A persistent cap counts all HTTP attempts, including retries. It is not a USD budget.
+Automatic predictions, human judgments and synthetic test evidence stay separate.
+
+See [running and interpreting models](docs/run_models.md) for custom providers, reasoning
+models, existing responses, resume rules and human validation. This smoke profile tests
+mechanics with dated baseline snapshots; it is not a frontier-model recommendation.
+
+## Audit and calibrate judges
+
+The **Judge audit** page compares judges on identical saved candidate responses and
+shows preference consistency separately from action consistency. Expand a pair to read
+both display orders and explanations. Optional human exports provide a separate majority
+reference with explicit coverage, disagreement and provenance.
+
+~~~powershell
+.\.venv\Scripts\python.exe -m shuorenhua_bench.cli compare-judges --runs studies/first-model-run studies/astra-judge-pilot --output studies/judge-comparison-v05.json
+~~~
+
+The [judge audit guide](docs/judge_audit.md) includes the Astra comparison configuration,
+human-reference commands and offline reanalysis. The original acceptance rule is retained.
+All-tie reports state that no winner is established; collapsed bootstrap intervals are withheld.
+
+## Study infrastructure from v0.3
 
 - **Study packages:** frozen input copies, SHA-256 checks, private identity maps, opaque public
   response IDs, distinct-rater assignments, and A/B counterbalancing.
