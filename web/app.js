@@ -232,6 +232,30 @@ function setReport(x) {
       checkLine("Ranking", x.ranking_status === "withheld" ? "Withheld" : x.ranking_status === "no_separation" ? "All ties · no winner" : "Screening estimate"));
   }
   $("warnings").replaceChildren(...x.warnings.map(w => node("li", w)));
+  const sensitivity = x.sensitivity;
+  $("sensitivityPanel").classList.toggle("hidden", !sensitivity);
+  $("sensitivityChecks").replaceChildren();
+  $("sensitivityRows").replaceChildren();
+  if (sensitivity) {
+    const primary = sensitivity.primary_full_consistency;
+    const diagnostic = sensitivity.diagnostic_stable_preference_only;
+    const order = result => result.point_order?.join(" → ") || "No ordering established";
+    $("sensitivityNotice").textContent = "Primary acceptance rule unchanged. " +
+      (sensitivity.point_order_changed === true ? "The fitted ordering changes under the diagnostic rule." :
+       sensitivity.point_order_changed === false ? "The fitted ordering is unchanged under the diagnostic rule." :
+       "An ordering cannot be compared under both rules.");
+    $("sensitivityChecks").append(
+      checkLine("Primary · " + primary.n_pairs + " pairs", order(primary)),
+      checkLine("Stable preference only · " + diagnostic.n_pairs + " pairs", order(diagnostic)));
+    $("sensitivityRows").replaceChildren(...sensitivity.head_to_head_exclusion_bounds.map(c => {
+      const row = node("tr");
+      row.append(node("td", c.system_a + " / " + c.system_b),
+        node("td", c.a_wins + " / " + c.ties + " / " + c.b_wins),
+        node("td", c.n_excluded + " / " + c.n_planned),
+        node("td", c.a_score_range_over_all_planned?.map(pct).join(" – ") || "Unavailable"));
+      return row;
+    }));
+  }
   renderSlices();
 }
 function renderSlices() {

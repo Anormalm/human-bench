@@ -140,7 +140,14 @@ Do not select only automatically accepted pairs for human validation: inspect th
 frozen comparison set, including excluded cases. The runner provides packets; it does
 not recruit participants or establish population validity.
 
-## API references
+## Combine multiple batches
+
+For additional disjoint scenario batches using the same configuration, see
+[Combine completed model batches](combine_runs.md). This creates pooled estimates,
+an exclusion-sensitivity diagnostic, a combined judge audit and new blinded assignments
+without making further API calls. It does not turn model predictions into human evidence.
+
+## API references and model configuration
 
 Configuration was checked against official documentation on 2026-09-13:
 [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs),

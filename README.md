@@ -215,3 +215,6 @@ fields. Consumers should check schema_version.
 
 See [CHANGELOG](CHANGELOG.md), [benchmark card](docs/benchmark_card.md),
 [research protocol](docs/research_protocol_v03.md) and [data documentation](data/README.md).
+
+For larger model screens, [combine completed batches](docs/combine_runs.md) with
+verified provenance, one fixed judge identity, and a separate exclusion-sensitivity analysis.

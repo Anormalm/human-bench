@@ -9,6 +9,7 @@ import yaml
 
 from .audit import audit_dataset, plan_sample_size
 from .benchmark_run import run_benchmark
+from .combine_runs import combine_runs
 from .dataset import read_jsonl, write_jsonl
 from .judge_audit import compare_judges, reanalyze_run
 from .judge_controls import JudgeControl, run_controls
@@ -39,6 +40,12 @@ def main():
     compare.add_argument("--min-human-raters", type=int, default=3)
     compare.add_argument("--bootstrap-samples", type=int, default=1000)
     compare.add_argument("--seed", type=int, default=20260913)
+    combine = sub.add_parser("combine-runs", help="Pool disjoint completed batches offline")
+    combine.add_argument("--runs", type=Path, nargs="+", required=True)
+    combine.add_argument("--output", type=Path, required=True)
+    combine.add_argument("--bootstrap-samples", type=int, default=1000)
+    combine.add_argument("--seed", type=int, default=20260913)
+    combine.add_argument("--raters", type=int, default=12)
     reanalyze = sub.add_parser("reanalyze", help="Rebuild a screening report from saved raw observations offline")
     reanalyze.add_argument("--run", type=Path, required=True)
     reanalyze.add_argument("--output", type=Path, required=True)
@@ -104,6 +111,9 @@ def main():
         print(json.dumps({"report": str(args.output), "n_pairs": result["n_pairs"],
                           "evidence_status": result["evidence_status"]}, indent=2))
         return
+    elif args.command == "combine-runs":
+        result = combine_runs(args.runs, args.output, bootstrap_samples=args.bootstrap_samples,
+                              seed=args.seed, raters=args.raters)
     elif args.command == "reanalyze":
         if args.bootstrap_samples < 0:
             parser.error("--bootstrap-samples must be nonnegative")
