@@ -17,7 +17,7 @@ Outputs:
 - `report.json`: unchanged primary rule (both orders agree on preference and both actions), pooled bootstrap intervals and per-genre summaries.
 - `judge-audit.json`: all forward/reverse decisions, with each comparison's source batch.
 - `sensitivity.json`: primary and stable-preference-only point fits, extra diagnostic comparisons, and worst-case score bounds for excluded pairs.
-- `human-study/public/`: blinded assignments with three distinct raters assigned per pair; twelve packets by default. For 32 scenarios and three models, each packet has 24 comparisons, totalling 288 planned judgments.
+- `human-study/public/`: blinded assignments with three distinct raters assigned per pair; twelve packets by default. For 32 scenarios and three models, each packet has about 24 comparisons (workloads can vary to reduce repeated scenarios per rater), totalling 288 planned judgments.
 
 All batches count as one fixed judge configuration. Original response texts and display orientations are preserved in the pooled records; the human packets receive a separately balanced blind display. Source artifacts are never overwritten. Control fixtures, synthetic evidence and rewritten responses are excluded from this workflow. `combined-manifest.json` identifies a derived analysis rather than pretending it is a new generation run.
 
