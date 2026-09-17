@@ -48,6 +48,11 @@ See [running and interpreting models](docs/run_models.md) for custom providers, 
 models, existing responses, resume rules and human validation. This smoke profile tests
 mechanics with dated baseline snapshots; it is not a frontier-model recommendation.
 
+For a larger field, the [budgeted model sweep](docs/wide_screen.md) supports 150 cheap
+OpenRouter model IDs, shared scenarios, sparse balanced comparisons, persisted cost
+reservations and offline evidence verification. Open **Model sweep** to search its
+exploratory rankings. Model-judged screening is separate from human benchmark evidence.
+
 ## Audit and calibrate judges
 
 The **Judge audit** page compares judges on identical saved candidate responses and

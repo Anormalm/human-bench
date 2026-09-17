@@ -11,7 +11,8 @@ BUNDLE_PATH = ROOT / "data/web/demo_bundle.json"
 REPORT_PATH = ROOT / "data/web/demo_report.json"
 STATIC = {"/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
           "/annotation.js": ("annotation.js", "text/javascript"),
-          "/styles.css": ("styles.css", "text/css")}
+          "/styles.css": ("styles.css", "text/css"), "/wide": ("wide.html", "text/html"),
+          "/wide.js": ("wide.js", "text/javascript")}
 
 
 def _response(start_response, status, content_type, body):
@@ -37,9 +38,10 @@ def app(environ: dict, start_response: Callable) -> Iterable[bytes]:
     if path in STATIC:
         file, mime = STATIC[path]
         return _response(start_response, "200 OK", mime, (ROOT / "web" / file).read_bytes())
-    if path in {"/api/judge-audit", "/api/collection"}:
-        configured = os.environ.get("SHUORENHUA_JUDGE_AUDIT" if path == "/api/judge-audit"
-                                    else "SHUORENHUA_COLLECTION")
+    if path in {"/api/judge-audit", "/api/collection", "/api/wide-report"}:
+        configured = os.environ.get({"/api/judge-audit": "SHUORENHUA_JUDGE_AUDIT",
+                                     "/api/collection": "SHUORENHUA_COLLECTION",
+                                     "/api/wide-report": "SHUORENHUA_WIDE_REPORT"}[path])
         target = Path(configured) if configured else None
         if target is not None and target.is_file():
             return _response(start_response, "200 OK", "application/json", target.read_bytes())
