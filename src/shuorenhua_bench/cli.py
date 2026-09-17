@@ -9,6 +9,7 @@ import yaml
 
 from .audit import audit_dataset, plan_sample_size
 from .benchmark_run import run_benchmark
+from .collection import collection_snapshot
 from .combine_runs import combine_runs
 from .dataset import read_jsonl, write_jsonl
 from .judge_audit import compare_judges, reanalyze_run
@@ -72,6 +73,11 @@ def main():
     rater_site.add_argument("--study", type=Path, required=True)
     rater_site.add_argument("--output", type=Path, required=True)
     rater_site.add_argument("--base-url", default="http://127.0.0.1:8044")
+    collection = sub.add_parser("collection", help="Validate human returns and report assignment coverage offline")
+    collection.add_argument("--study", type=Path, required=True)
+    collection.add_argument("--exports", type=Path, nargs="*", default=[])
+    collection.add_argument("--exports-dir", type=Path, help="Read .jsonl files directly inside this directory")
+    collection.add_argument("--output", type=Path, required=True, help="New snapshot path; previous snapshots are preserved")
     evaluate = sub.add_parser("evaluate", help="Verify study, resolve blind exports and report")
     evaluate.add_argument("--study", type=Path, required=True)
     evaluate.add_argument("--exports", type=Path, nargs="+", required=True)
@@ -138,6 +144,19 @@ def main():
                                seed=args.seed, study_name=args.name)
     elif args.command == "rater-site":
         result = prepare_rater_site(args.study, args.output, base_url=args.base_url)
+    elif args.command == "collection":
+        if args.output.exists():
+            parser.error("--output must be a new snapshot path")
+        files = list(args.exports)
+        if args.exports_dir is not None:
+            if not args.exports_dir.is_dir():
+                parser.error("--exports-dir must be an existing directory")
+            files.extend(sorted(args.exports_dir.glob("*.jsonl")))
+        result = collection_snapshot(args.study, files)
+        write_json(args.output, result)
+        print(json.dumps({"output": str(args.output), "status": result["status"],
+                          "sample": result["sample"], "readiness": result["readiness"]}, indent=2))
+        return
     elif args.command == "evaluate":
         manifest = verify_study(args.study)
         judgments, duplicates = import_judgments(args.study, args.exports)

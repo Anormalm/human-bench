@@ -22,12 +22,14 @@ def main() -> None:
     parser.add_argument("--bundle", type=Path, help="Assigned annotation packet to display")
     parser.add_argument("--judge-audit", type=Path, help="Judge comparison audit to display")
     parser.add_argument("--rater-site", type=Path, help="Serve a frozen rater site with no workbench routes")
+    parser.add_argument("--collection", type=Path, help="Verified coordinator collection snapshot to display")
     args = parser.parse_args()
-    if args.rater_site and any((args.report, args.bundle, args.judge_audit)):
-        parser.error("--rater-site cannot be combined with workbench report, bundle or audit options")
+    if args.rater_site and any((args.report, args.bundle, args.judge_audit, args.collection)):
+        parser.error("--rater-site cannot be combined with workbench report options")
     application = create_rater_app(args.rater_site) if args.rater_site else app
     for name, path in (("SHUORENHUA_REPORT", args.report), ("SHUORENHUA_BUNDLE", args.bundle),
-                       ("SHUORENHUA_JUDGE_AUDIT", args.judge_audit)):
+                       ("SHUORENHUA_JUDGE_AUDIT", args.judge_audit),
+                       ("SHUORENHUA_COLLECTION", args.collection)):
         if path is not None:
             if not path.is_file():
                 parser.error(f"file does not exist: {path}")

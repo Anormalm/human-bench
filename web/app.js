@@ -246,3 +246,68 @@ $("judgeAuditFile").onchange = e => importFile(e, x => { setJudgeAudit(x); go("j
 getJson("/api/judge-audit").then(setJudgeAudit).catch(() => {
   $("judgeAuditNotice").textContent = "No judge audit loaded. Run compare-judges on saved runs, then import its JSON report.";
 });
+
+let collectionReport = null, collectionPage = 0;
+function setCollection(x) {
+  if (!x || x.schema_version !== "0.5" || x.report_kind !== "collection_status" ||
+      !["human", "synthetic"].includes(x.evidence_kind) || !x.sample || !x.readiness || !x.imports ||
+      !Array.isArray(x.assignments) || !Array.isArray(x.pairs) || !Array.isArray(x.genres) ||
+      !Array.isArray(x.warnings) || !Array.isArray(x.imports.files) || x.pairs.length > 100000) {
+    throw new Error("Expected a collection snapshot generated from a frozen study and returned exports.");
+  }
+  collectionReport = x; collectionPage = 0;
+  const s = x.sample, ready = x.readiness;
+  $("collectionNotice").textContent = (x.evidence_kind === "synthetic" ? "SYNTHETIC PRACTICE · " : "HUMAN STUDY · ") +
+    x.status.replaceAll("_", " ") + ". " + s.n_human_judgments + " validated human judgments in this snapshot.";
+  $("collectionTimestamp").textContent = x.study_id + " · Snapshot: " + new Date(x.created_at).toLocaleString();
+  stats("collectionStats", [[s.n_received_judgments + " / " + s.n_planned_judgments, "Validated returns"],
+    [s.n_assignments_complete + " / " + s.n_assignments, "Complete assignments"],
+    [s.n_complete_pairs + " / " + s.n_pairs, "Fully rated comparisons"], [s.n_remaining_judgments, "Judgments still missing"]]);
+  $("collectionChecks").replaceChildren(
+    checkLine("All assignments returned", ready.all_assigned_judgments_returned ? "Yes" : "No"),
+    checkLine("All models connected by returns", ready.can_fit_global_ranking_on_returned_comparisons ? "Yes" : "No"),
+    checkLine("Ready for planned analysis", ready.ready_for_planned_analysis ? "Yes" : "No"),
+    checkLine("Scenario families with returns", s.n_groups_with_returns + " / " + s.n_groups_planned),
+    checkLine("Fully rated comparison components", ready.fully_rated_components.map(c => c.join(" + ")).join(" | ")));
+  $("collectionBlockers").replaceChildren(...ready.blockers.map(b => node("li", b)));
+  $("collectionAssignments").replaceChildren(...x.assignments.map(a => {
+    const row = node("tr");
+    row.append(node("td", a.assignment_id), node("td", a.n_received + " / " + a.n_planned),
+      node("td", a.n_remaining), node("td", a.status.replaceAll("_", " "))); return row;
+  }));
+  $("collectionGenres").replaceChildren(...x.genres.map(g => {
+    const row = node("tr"); row.append(node("td", g.genre.replaceAll("_", " ")),
+      node("td", g.n_complete_pairs + " / " + g.n_pairs),
+      node("td", g.n_received_judgments + " / " + g.n_planned_judgments)); return row;
+  }));
+  $("collectionImports").textContent = x.imports.files.length + " input files · " +
+    x.imports.identical_duplicate_rows_ignored + " identical duplicate rows ignored · " +
+    x.imports.empty_files.length + " empty files";
+  $("collectionSources").replaceChildren(...x.imports.files.map(f => {
+    const row = node("tr"); row.append(node("td", f.name), node("td", f.n_records),
+      node("td", f.assignments.join(", ")), node("td", f.sha256.slice(0, 16))); return row;
+  }));
+  $("collectionWarnings").replaceChildren(...x.warnings.map(w => node("li", w)));
+  renderCollectionPairs();
+}
+function renderCollectionPairs() {
+  if (!collectionReport) return;
+  const pairs = collectionReport.pairs.filter(p => $("collectionPairFilter").value === "all" || p.status !== "complete");
+  const pages = Math.max(1, Math.ceil(pairs.length / 20));
+  collectionPage = Math.min(collectionPage, pages - 1);
+  $("collectionPrevious").disabled = collectionPage === 0;
+  $("collectionNext").disabled = collectionPage >= pages - 1;
+  $("collectionPageStatus").textContent = pairs.length ? "Page " + (collectionPage + 1) + " / " + pages +
+    " · " + pairs.length + " comparisons" : "No unfinished comparisons in this snapshot.";
+  $("collectionPairs").replaceChildren(...pairs.slice(collectionPage * 20, (collectionPage + 1) * 20).map(p => {
+    const row = node("tr"); row.append(node("td", p.scenario_id), node("td", p.systems.join(" / ")),
+      node("td", p.n_received + " / " + p.n_required), node("td", p.missing_assignments.join(", ") || "Complete")); return row;
+  }));
+}
+$("collectionPairFilter").onchange = () => { collectionPage = 0; renderCollectionPairs(); };
+$("collectionPrevious").onclick = () => { if (collectionPage > 0) collectionPage--; renderCollectionPairs(); };
+$("collectionNext").onclick = () => { collectionPage++; renderCollectionPairs(); };
+$("collectionFile").onchange = e => importFile(e, x => { setCollection(x); go("collection"); });
+getJson("/api/collection").then(setCollection).catch(() => {
+  $("collectionNotice").textContent = "No collection snapshot loaded. Run the collection command and import its JSON snapshot.";
+});

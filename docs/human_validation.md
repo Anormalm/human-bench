@@ -30,6 +30,8 @@ Answers remain in browser storage until the participant returns the file. The se
 
 ## Coordinator import
 
+Use the [Collection snapshot workflow](collection.md) to track partial returns, duplicate exports, missing ratings and analysis readiness before evaluating the results.
+
 Keep all human judgments separate from model screening reports. For example, once actual participants return exports:
 
 ```powershell
