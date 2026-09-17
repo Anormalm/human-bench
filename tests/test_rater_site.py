@@ -35,7 +35,7 @@ def test_rater_app_exposes_only_assigned_content(tmp_path, monkeypatch):
     monkeypatch.setenv('SHUORENHUA_REPORT', str(secret))
     monkeypatch.setenv('SHUORENHUA_JUDGE_AUDIT', str(secret))
     app = create_rater_app(output)
-    for path in ['/api/report', '/api/judge-audit', '/api/collection', '/api/wide-report', '/api/wide-baseline', '/wide', '/wide.js',
+    for path in ['/api/report', '/api/judge-audit', '/api/collection', '/api/wide-report', '/api/wide-baseline', '/wide', '/wide.js', '/wide.css',
                  '/api/bundle', '/app.js', '/index.html',
                  '/coordinator.json', '/site-manifest.json', '/private/response_map.json',
                  '/studies/secret.json', '/r/rater-001/bundle.json', url + '../../coordinator.json']:

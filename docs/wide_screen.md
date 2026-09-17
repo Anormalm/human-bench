@@ -154,11 +154,25 @@ No key or network connection is needed for offline reanalysis:
 .\.venv\Scripts\python.exe scripts/serve_web.py --port 8043 --wide-report studies/wide-150/wide-report.json
 ~~~
 
-Open [Model sweep](http://127.0.0.1:8043/wide). The page shows searchable, paginated
-ranks, incomplete models, comparison coverage, consistency exclusions and billing.
+Open the [model leaderboard](http://127.0.0.1:8043/wide). Search or filter by model
+organization and response coverage, and sort table columns by point rank, name,
+rank movement, usable scenarios, accepted comparisons, or reported generation cost.
+Reset filters also restores rank order. The Rank uncertainty tab plots the top ten
+matching point estimates and available 95% scenario-bootstrap intervals; selecting
+a plotted model finds it in the table. Interval endpoints are rounded outward to
+whole ranks. Missing intervals remain explicitly unavailable.
+
+Summary cards describe the selected study, including reused records. Per-model
+generation costs exclude judge calls and unknown charges; they are not catalog
+prices or comparable per-task cost estimates. Run & cost and Study limits &
+exclusions disclose the complete accounting and exclusion details. The layout takes
+visual inspiration from [Artificial Analysis](https://artificialanalysis.ai/leaderboards/models)
+while using this benchmark's own measurements and identity.
+
 It refreshes automatically during a run. The new report option can be combined with
 the existing `--report`, `--bundle`, `--judge-audit` and `--collection` options.
-Rater-only servers do not expose the sweep page, its script, or its report endpoint.
+Rater-only servers do not expose the leaderboard, its script or stylesheet, or its
+report endpoint.
 
 Offline reanalysis reconstructs requests from the frozen plan, verifies saved raw
 records against ledger hashes, checks the exact seeded schedule, and reproduces

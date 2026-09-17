@@ -158,6 +158,8 @@ def test_workbench_serves_only_configured_wide_report(tmp_path, monkeypatch):
     result = request(app, '/api/wide-report')
     assert result['status'] == '200 OK' and json.loads(result['body'])['report_kind'] == 'wide_screen'
     assert b'wide.js' in request(app, '/wide')['body']
+    assert b'/wide.css' in request(app, '/wide')['body']
+    assert request(app, '/wide.css')['headers']['Content-Type'].startswith('text/css')
     assert request(app, '/api/wide-report', 'POST')['status'] == '405 Method Not Allowed'
     monkeypatch.delenv('SHUORENHUA_WIDE_BASELINE', raising=False)
     assert request(app, '/api/wide-baseline')['status'] == '503 Service Unavailable'

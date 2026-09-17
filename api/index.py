@@ -12,7 +12,7 @@ REPORT_PATH = ROOT / "data/web/demo_report.json"
 STATIC = {"/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
           "/annotation.js": ("annotation.js", "text/javascript"),
           "/styles.css": ("styles.css", "text/css"), "/wide": ("wide.html", "text/html"),
-          "/wide.js": ("wide.js", "text/javascript")}
+          "/wide.js": ("wide.js", "text/javascript"), "/wide.css": ("wide.css", "text/css")}
 
 
 def _response(start_response, status, content_type, body):

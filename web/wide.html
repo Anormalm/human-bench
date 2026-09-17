@@ -1,13 +1,43 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Model sweep · 说人话 Bench</title><link rel="stylesheet" href="/styles.css"></head>
-<body><header class="header"><a class="brand" href="/"><span class="mark">说</span><span>说人话 <b>Bench</b><small>HUMAN COMMUNICATION LAB</small></span></a><nav aria-label="Main navigation"><a class="nav" href="/">Workbench</a><a class="nav active" href="/wide">Model sweep</a></nav><span class="version">Exploratory screening</span></header>
-<main><section class="page"><div class="section-head"><div><div class="eyebrow">MANY MODELS, SHARED SCENARIOS</div><h1 class="page-title">A wider view of the field.</h1></div><div><label>Study <select id="wideStudy"><option value="current">Current study</option><option value="baseline">Earlier snapshot</option></select></label><button id="refreshWide" class="secondary">Refresh results</button></div></div>
-<p class="lead">Compare inexpensive model versions on the same Chinese communication tasks.<br>Inspect coverage and uncertainty before interpreting the order.</p>
-<div id="wideNotice" class="notice">Loading the model screen…</div><p id="wideUpdated" class="caption"></p><div id="wideStats" class="stats"></div>
-<div class="bottom-grid"><article class="panel"><h2>Run and cost</h2><div id="wideChecks"></div><p class="caption">The local budget includes reservations for unknown billing outcomes. Provider-reported charges exclude credit purchase fees and taxes. No automatic expansion beyond the frozen study.</p></article><article class="panel"><h2>How to read this ranking</h2><p>Each scheduled model has two opponents per scenario. The judge checks both display orders; preference and both action labels must agree before a comparison is accepted.</p><p>Point ranks are exploratory. With only a few scenario families, rank intervals can be unstable. Incomplete generations and disconnected comparisons do not become losses.</p><p id="wideBootstrap" class="caption"></p></article></div>
-<div class="section-head"><h2>Model estimates</h2><div class="hero-actions"><label>Find a model <input id="wideSearch" type="search" placeholder="Model or organization"></label><label>Show <select id="wideFilter"><option value="all">All models</option><option value="ranked">Ranked models</option><option value="unranked">Unranked models</option></select></label></div></div>
-<p id="wideBaseline" class="caption"></p>
-<div class="panel table-wrap"><table><thead><tr><th>Point rank</th><th>Model</th><th>Rank change</th><th>Exploratory rank interval</th><th>Scenarios completed</th><th>Accepted / scheduled</th><th>Win / tie / loss</th><th>Status</th></tr></thead><tbody id="wideRows"></tbody></table></div>
-<div class="decision-footer"><button id="widePrevious" class="secondary">← Previous</button><span id="widePage" class="caption"></span><button id="wideNext" class="secondary">Next →</button></div>
-<details class="panel"><summary>Study limits and exclusions</summary><p id="wideOrder" class="caption"></p><ul id="wideWarnings" class="warnings"></ul></details>
-</section></main><footer class="footer"><span>说人话 Bench · Model predictions require human validation.</span><a id="wideDownload" href="/api/wide-report">Report JSON ↗</a></footer><script src="/wide.js"></script></body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f2f3f5"><title>Model leaderboard · 说人话 Bench</title>
+<link rel="stylesheet" href="/wide.css">
+</head>
+<body>
+<a class="skip-link" href="#leaderboard">Skip to leaderboard</a>
+<header class="site-header">
+<a class="brand" href="/"><span class="brand-mark" aria-hidden="true">说</span>说人话 <span>Bench</span></a>
+<nav aria-label="Main navigation"><a class="active" href="/wide" aria-current="page">Model leaderboard</a><a href="/">Workbench</a><a href="#methodology">Methodology</a><a href="#run-details">Run &amp; cost</a></nav>
+<a id="wideDownload" class="button button-dark" href="/api/wide-report" hidden>Report JSON <span aria-hidden="true">↗</span></a>
+</header>
+<main>
+<section class="hero" aria-labelledby="pageTitle">
+<div><p class="eyebrow">SHUORENHUA / MODEL EVALUATION</p><h1 id="pageTitle">Chinese communication.<br>Compared, model by model.</h1></div>
+<div class="hero-description"><p>Explore how models handle the audience, tone, and intent of everyday Chinese communication. Compare preference estimates, evidence coverage, and reported cost.</p><p class="scope-note"><span class="status-dot" aria-hidden="true"></span>Model-judged screening · Human validation pending</p>
+<div class="study-controls"><label for="wideStudy">Study</label><select id="wideStudy"><option value="current">Current study</option><option value="baseline">Earlier snapshot</option></select><button id="refreshWide" class="button" aria-label="Refresh results"><span aria-hidden="true">↻</span> Refresh</button></div></div>
+</section>
+<div id="wideStats" class="summary-grid" aria-label="Study summary"></div>
+<div class="snapshot-line"><p id="wideNotice" role="status">Loading the model screen…</p><p id="wideUpdated"></p></div>
+<section id="leaderboard" class="data-panel" aria-labelledby="leaderboardTitle">
+<div class="data-heading"><div><h2 id="leaderboardTitle">Model leaderboard</h2><p>One shared study. Coverage and uncertainty alongside every estimate.</p></div><div class="view-tabs" role="tablist" aria-label="Results view"><button id="tableTab" role="tab" aria-selected="true" aria-controls="tableView">Rankings</button><button id="chartTab" role="tab" aria-selected="false" aria-controls="chartView" tabindex="-1">Rank uncertainty</button></div></div>
+<div class="filters">
+<label class="search-label" for="wideSearch"><span>Search models</span><input id="wideSearch" type="search" placeholder="Search model or organization…" autocomplete="off"></label>
+<label for="wideOrganization"><span>Organization</span><select id="wideOrganization"><option value="all">All organizations</option></select></label>
+<label for="wideFilter"><span>Coverage</span><select id="wideFilter"><option value="all">All models</option><option value="complete">Complete responses</option><option value="partial">Partial responses</option><option value="ranked">Ranked models</option><option value="unranked">Unranked models</option></select></label>
+<button id="wideReset" class="reset-button">Reset filters</button></div>
+<div class="table-context"><span id="wideCount">Loading…</span><span id="wideBaseline"></span></div>
+<div id="tableView" role="tabpanel" aria-labelledby="tableTab">
+<div class="table-scroll" tabindex="0" role="region" aria-label="Model rankings, scroll horizontally for more metrics"><table>
+<thead><tr class="column-groups"><th colspan="2" scope="colgroup">Models</th><th colspan="2" scope="colgroup">Preference estimates</th><th colspan="3" scope="colgroup">Evidence</th><th colspan="2" scope="colgroup">Execution</th></tr>
+<tr><th scope="col" aria-sort="ascending"><button data-sort="rank">Rank <span class="sort-arrow" aria-hidden="true">↑</span></button></th><th scope="col"><button data-sort="name">Model <span class="sort-arrow" aria-hidden="true">↕</span></button></th><th scope="col"><button data-sort="rank_change">Change <span class="sort-arrow" aria-hidden="true">↕</span></button></th><th scope="col">95% rank interval</th><th scope="col"><button data-sort="n_generated">Scenarios <span class="sort-arrow" aria-hidden="true">↕</span></button></th><th scope="col"><button data-sort="n_accepted">Accepted pairs <span class="sort-arrow" aria-hidden="true">↕</span></button></th><th scope="col">Win / tie / loss</th><th scope="col"><button data-sort="generation_reported_usd">Generation cost <span class="sort-arrow" aria-hidden="true">↕</span></button><small>Reported USD</small></th><th scope="col">Status</th></tr></thead><tbody id="wideRows"></tbody>
+</table></div><div class="pagination"><span id="widePage" aria-live="polite"></span><div><button id="widePrevious" class="button" disabled>← Previous</button><button id="wideNext" class="button" disabled>Next →</button></div></div></div>
+<div id="chartView" class="chart-view" role="tabpanel" aria-labelledby="chartTab" hidden><div class="chart-heading"><div><h3>How certain is the order?</h3><p id="chartDescription">The top 10 matching models by point rank. Lower ranks are better.</p></div><span class="chart-legend"><i aria-hidden="true"></i> Point rank <b aria-hidden="true"></b> 95% interval</span></div><div id="wideChart"></div><p class="chart-footnote">Overlapping intervals leave the order uncertain. Select a model to find it in the table. These intervals capture scenario sampling, not judge bias.</p></div>
+</section>
+<section id="methodology" class="methodology" aria-labelledby="methodTitle"><div><p class="eyebrow">BEHIND THE NUMBERS</p><h2 id="methodTitle">Read the evidence,<br>not just the rank.</h2></div><div><h3>Two orders. One accepted comparison.</h3><p>Each scheduled model has two opponents per scenario. The judge sees both display orders. Preference and both usability labels must agree for the pair to count.</p></div><div><h3>Exploratory, with uncertainty.</h3><p>Ranks come from a Davidson model within the connected comparison graph. Missing responses are not losses. Public, AI-authored scenarios and one model judge do not establish human preference or an overall winner.</p><p id="wideBootstrap" class="small-note"></p></div></section>
+<div class="detail-grid"><details id="run-details" class="details-panel"><summary>Run &amp; cost <span>Inspect usage and coverage</span></summary><div class="details-content"><div id="wideChecks"></div><p class="small-note">Generation costs sum reported candidate-call charges, including failed calls with known charges; they exclude judging and unknown charges. The local allowance includes imported records and reservations. Reported charges exclude credit purchase fees and taxes. No automatic expansion beyond the frozen study.</p></div></details><details class="details-panel"><summary>Study limits &amp; exclusions <span>Understand what counts</span></summary><div class="details-content"><p id="wideOrder" class="small-note"></p><ul id="wideWarnings"></ul></div></details></div>
+</main>
+<footer><span>说人话 Bench <span class="footer-divider">/</span> Human communication research</span><span>Model predictions require human validation.</span></footer>
+<script src="/wide.js"></script>
+</body></html>
