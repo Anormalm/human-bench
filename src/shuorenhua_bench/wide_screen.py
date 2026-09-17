@@ -43,6 +43,8 @@ def billing_totals(state):
     imported = [state['entries'][k] for k in state.get('imported_tasks', [])]
     return {'reported_usd': sum(e.get('reported_cost') or 0 for e in entries),
             'reused_requests': len(imported),
+            'reused_generation_requests': sum(k.startswith('g:') for k in state.get('imported_tasks', [])),
+            'reused_judge_requests': sum(k.startswith('j:') for k in state.get('imported_tasks', [])),
             'reused_reported_usd': sum(e.get('reported_cost') or 0 for e in imported),
             'charged_or_reserved_usd': sum(e['accounted_cost'] for e in entries),
             'unknown_cost_requests': sum(e.get('reported_cost') is None for e in entries),
@@ -199,6 +201,19 @@ def cycle_schedule(models, scenarios, seed):
     return rows
 
 
+def scheduled_cohort(plan, responses):
+    names = [m['model'] for m in plan['models']]
+    if plan.get('cohort_policy') == 'fixed_prior_complete':
+        return names
+    return [m for m in names if all(responses.get((s['scenario_id'], m), {}).get('status') == 'success'
+                                   for s in plan['scenarios'])]
+
+
+def pair_available(pair, responses):
+    return all(responses.get((pair['scenario_id'], pair[k]), {}).get('status') == 'success'
+               for k in ('model_a', 'model_b'))
+
+
 class BudgetStop(RuntimeError):
     pass
 
@@ -350,12 +365,14 @@ def analyze(plan, responses, schedule, checks, costs, *, phase, bootstrap=0):
     for pair in schedule:
         f, r = (checks.get((pair['pair_id'], order)) for order in (False, True))
         result = compare_orders(_decision(f), _decision(r))
+        if not pair_available(pair, responses):
+            result.update(accepted=False, status='missing_candidate', exclusion_reason='missing_candidate_response')
         diagnostics.append({**pair, **result})
         if result['accepted']:
             accepted.append((pair['model_a'], pair['model_b'], result['stable_preference'], pair['scenario_id']))
     components = comparison_components([(a, b, y) for a, b, y, _ in accepted])
     observed = {m for c in components for m in c}
-    components += [[m] for m in complete if m not in observed]
+    components += [[m] for m in scheduled_cohort(plan, responses) if m not in observed]
     components.sort(key=lambda c: (-len(c), c))
     ranked = components[0] if components and len(components[0]) >= 3 else []
     comparisons = [(a, b, y) for a, b, y, _ in accepted if a in ranked and b in ranked]
@@ -387,6 +404,8 @@ def analyze(plan, responses, schedule, checks, costs, *, phase, bootstrap=0):
         votes = [y if a == m else {'A': 'B', 'B': 'A', 'tie': 'tie'}[y]
                  for a, b, y, _ in accepted if m in (a, b)]
         ability = fit.abilities.get(m) if fit else None
+        rank = 1 + sum(v > ability + 1e-10 for v in fit.abilities.values()) if ability is not None else None
+        previous_rank = plan.get('baseline', {}).get('ranks', {}).get(m)
         def interval(values):
             if len(values) < 20 or lost > bootstrap * .1:
                 return None
@@ -397,13 +416,15 @@ def analyze(plan, responses, schedule, checks, costs, *, phase, bootstrap=0):
                      'n_planned_comparisons': sum(m in (p['model_a'], p['model_b']) for p in schedule),
                      'wins': votes.count('A'), 'ties': votes.count('tie'), 'losses': votes.count('B'),
                      'ability': ability,
-                     'rank': 1 + sum(v > ability + 1e-10 for v in fit.abilities.values()) if ability is not None else None,
+                     'rank': rank, 'previous_rank': previous_rank,
+                     'rank_change': previous_rank - rank if rank is not None and previous_rank is not None else None,
                      'rank_interval': interval(rank_samples[m]), 'ability_interval': interval(ability_samples[m]),
                      'generation_failures': dict(Counter(failure_reason(responses[(s, m)]) for s in scenario_ids
                                                          if (s, m) in responses and responses[(s, m)].get('status') != 'success')),
                      'generation_reported_usd': sum(result_fields(responses[(s, m)]['body'])[2] or 0
                                                     for s in scenario_ids if 'body' in responses.get((s, m), {})),
-                     'status': 'ranked' if ability is not None else 'incomplete_generation' if n_success < len(scenario_ids)
+                     'status': ('ranked' if n_success == len(scenario_ids) else 'ranked_partial_generation') if ability is not None
+                               else 'incomplete_generation' if n_success < len(scenario_ids)
                                else 'ranking_pending' if phase != 'complete' else 'disconnected_or_fit_unavailable'})
     rows.sort(key=lambda r: (r['rank'] is None, r['rank'] or 0, r['model']))
     return {'schema_version': '0.1', 'report_kind': 'wide_screen', 'phase': phase,
@@ -416,6 +437,9 @@ def analyze(plan, responses, schedule, checks, costs, *, phase, bootstrap=0):
             'n_judge_checks_valid': sum(_decision(c) is not None for c in checks.values()),
             'judge': plan['judge']['model'], 'cost': costs,
             'judge_provider_policy': plan['judge'].get('provider', plan['provider']),
+            'cohort_policy': plan.get('cohort_policy', 'complete_generations'),
+            'baseline_n_scenarios': plan.get('baseline', {}).get('n_scenarios'),
+            'n_judge_checks_skipped': sum(c.get('status') == 'missing_candidate' for c in checks.values()),
             'rows': rows, 'order_status_counts': dict(Counter(d['status'] for d in diagnostics)),
             'components': components, 'bootstrap': {'attempts': bootstrap if fit is not None else 0, 'lost_fits': lost,
                                                    'intervals_withheld': lost > bootstrap * .1,
@@ -424,7 +448,9 @@ def analyze(plan, responses, schedule, checks, costs, *, phase, bootstrap=0):
                     'iterations': fit.iterations, 'gradient_norm': fit.gradient_norm} if fit else None,
             'warnings': [f'Exploratory screening on {len(scenario_ids)} public AI-authored Chinese scenarios; no supported overall winner.',
                          'Rank intervals resample whole scenario families. Intervals are withheld if over 10% of fits fail, fewer than 20 survive, or the interval collapses.',
-                         'Only complete-generation models enter the sparse schedule. Failure is not a preference loss.',
+                         ('The cohort and all pairings are fixed from prior generation availability. New failures skip affected pairs, not whole models; inspect unequal coverage.'
+                          if plan.get('cohort_policy') == 'fixed_prior_complete' else
+                          'Only complete-generation models enter the sparse schedule. Failure is not a preference loss.'),
                          'Rank covers the largest connected accepted-comparison component; disconnected models are not ordered against it.',
                          'Model judge predictions are not human preference evidence. Price and token limits restrict the population of models.',
                          'One fixed judge may favor related models or styles. Candidate identities are hidden, but judge error and family bias are not measured here.',
@@ -433,7 +459,7 @@ def analyze(plan, responses, schedule, checks, costs, *, phase, bootstrap=0):
             'diagnostics': diagnostics}
 
 
-def reanalyze_screen(root, *, bootstrap=100):
+def reanalyze_screen(root, *, bootstrap=100, write_report=True):
     """Validate frozen inputs and saved HTTP evidence; never instantiate a network client."""
     root = Path(root)
     with run_lock(root):
@@ -470,16 +496,16 @@ def reanalyze_screen(root, *, bootstrap=100):
         scenarios = [Scenario.model_validate(s) for s in plan['scenarios']]
         responses = {(s.scenario_id, m['model']): read(f'g:{s.scenario_id}:{m["model"]}', generation_payload(plan, m, s))
                      for s in scenarios for m in plan['models']}
-        complete = [m['model'] for m in plan['models'] if all(
-            responses[(s.scenario_id, m['model'])]['status'] == 'success' for s in scenarios)]
+        complete = scheduled_cohort(plan, responses)
         expected = cycle_schedule(complete, [s.scenario_id for s in scenarios], plan['seed']) if len(complete) >= 3 else []
         schedule_path = root / 'schedule.json'
         schedule = json.loads(schedule_path.read_text(encoding='utf-8')) if schedule_path.exists() else []
         if schedule and schedule != expected:
             raise ValueError('saved comparison schedule changed')
         by_id = {s.scenario_id: s for s in scenarios}
-        checks = {(p['pair_id'], rev): read(f'j:{p["pair_id"]}:{int(rev)}',
-                                          judge_payload(plan, p, by_id[p['scenario_id']], responses, rev))
+        checks = {(p['pair_id'], rev): (read(f'j:{p["pair_id"]}:{int(rev)}',
+                                           judge_payload(plan, p, by_id[p['scenario_id']], responses, rev))
+                                       if pair_available(p, responses) else {'status': 'missing_candidate'})
                   for p in schedule for rev in (False, True)}
         if seen != set(state['entries']) or raw_files != {p.name for p in (root / 'raw').glob('*.json')}:
             raise ValueError('unrecognized request or raw evidence outside the frozen schedule')
@@ -489,7 +515,8 @@ def reanalyze_screen(root, *, bootstrap=100):
                                'not_sent_generations': sum(r['status'] == 'not_sent' for r in responses.values()),
                                'not_sent_judge_checks': sum(r['status'] == 'not_sent' for r in checks.values()),
                                'note': 'Hashes detect changes relative to the saved ledger; they are not independent signatures.'}
-        atomic_json(root / 'wide-report.json', report)
+        if write_report:
+            atomic_json(root / 'wide-report.json', report)
         return report
 
 
@@ -498,7 +525,7 @@ def prepare_rejudge(source, output, *, budget_usd, judge_provider):
     source, output = Path(source).resolve(), Path(output).resolve()
     if output.exists() or not 0 < budget_usd <= 20 or not judge_provider:
         raise ValueError('rejudge needs a new directory, provider and positive budget at most $20')
-    verified = reanalyze_screen(source, bootstrap=0)
+    verified = reanalyze_screen(source, bootstrap=0, write_report=False)
     with run_lock(source):
         original = json.loads((source / 'plan.json').read_text(encoding='utf-8'))
         ledger = json.loads((source / 'requests.json').read_text(encoding='utf-8'))
@@ -528,6 +555,73 @@ def prepare_rejudge(source, output, *, budget_usd, judge_provider):
         return plan
 
 
+def prepare_expansion(source, output, scenarios, *, additional_scenarios=12, budget_usd=6):
+    """Freeze more distinct scenario families for every previously complete model."""
+    source, output = Path(source).resolve(), Path(output).resolve()
+    if output.exists() or not 0 < budget_usd <= 20 or additional_scenarios < 1:
+        raise ValueError('expansion needs a new directory, positive scenario count and budget at most $20')
+    verified = reanalyze_screen(source, bootstrap=0, write_report=False)
+    with run_lock(source):
+        original = json.loads((source / 'plan.json').read_text(encoding='utf-8'))
+        ledger = json.loads((source / 'requests.json').read_text(encoding='utf-8'))
+        if digest(ledger) != verified['integrity']['ledger_hash']:
+            raise ValueError('source ledger changed after verification')
+        full = {s.scenario_id: s for s in scenarios}
+        if len(full) != len(scenarios) or any(
+                s['scenario_id'] not in full or full[s['scenario_id']].model_dump(mode='json') != s
+                for s in original['scenarios']):
+            raise ValueError('scenario suite has duplicate IDs or changed source scenarios')
+        groups = _clusters(scenarios, scenarios)
+        selected = [full[s['scenario_id']] for s in original['scenarios']]
+        used = {groups[s.scenario_id] for s in selected}
+        if len(used) != len(selected):
+            raise ValueError('source scenarios are not independent families in the full suite')
+        counts = Counter(s.genre for s in selected)
+        rng = random.Random(original['seed'])
+        for _ in range(additional_scenarios):
+            available = sorted((s for s in scenarios if groups[s.scenario_id] not in used), key=lambda s: s.scenario_id)
+            rng.shuffle(available)
+            if not available:
+                raise ValueError('not enough unused scenario families')
+            choice = min(available, key=lambda s: counts[s.genre])
+            selected.append(choice); used.add(groups[choice.scenario_id]); counts[choice.genre] += 1
+        cohort = ({m['model'] for m in original['models']} if original.get('cohort_policy') == 'fixed_prior_complete'
+                  else {r['model'] for r in verified['rows'] if r['n_generated'] == r['n_scenarios']})
+        if len(cohort) < 3:
+            raise ValueError('expansion requires at least three previously complete models')
+        plan = deepcopy(original)
+        plan.update(models=[m for m in original['models'] if m['model'] in cohort],
+                    scenarios=[s.model_dump(mode='json') for s in selected],
+                    budget_usd=budget_usd, max_requests=len(cohort) * len(selected) * 5,
+                    created_at=datetime.now(timezone.utc).isoformat(), cohort_policy='fixed_prior_complete',
+                    scenario_groups={s.scenario_id: groups[s.scenario_id] for s in selected},
+                    suite_hash=digest([s.model_dump(mode='json') for s in scenarios]),
+                    generation_source={'path': os.path.relpath(source, output),
+                                       'plan_hash': digest(original), 'ledger_hash': digest(ledger),
+                                       'reuse_mode': 'generations_and_judge_checks'},
+                    baseline={'n_scenarios': len(original['scenarios']),
+                              'ranks': {r['model']: r['rank'] for r in verified['rows'] if r['model'] in cohort}},
+                    schedule='Frozen seeded cycle per scenario over the prior complete cohort. Missing responses skip only affected pairs.',
+                    scenario_selection='Retain prior scenarios; seeded genre balancing over unused full-suite semantic/template families.')
+        schedule = cycle_schedule(sorted(cohort), [s.scenario_id for s in selected], plan['seed'])
+        old_ids = {s['scenario_id'] for s in original['scenarios']}
+        allowed = {f'g:{s}:{m}' for s in old_ids for m in cohort}
+        allowed |= {f'j:{p["pair_id"]}:{order}' for p in schedule if p['scenario_id'] in old_ids for order in (0, 1)}
+        entries = {k: deepcopy(v) for k, v in ledger['entries'].items() if k in allowed}
+        if sum(e['accounted_cost'] for e in entries.values()) >= budget_usd:
+            raise ValueError('reused charges and reservations exhaust the new allowance')
+        output.mkdir(parents=True); (output / 'raw').mkdir()
+        atomic_json(output / 'plan.json', plan)
+        atomic_json(output / 'schedule.json', schedule)
+        atomic_json(output / 'requests.json', {'plan_hash': digest(plan), 'budget_usd': budget_usd,
+                                              'entries': entries, 'imported_tasks': sorted(entries)})
+        for task_id in entries:
+            path = source / 'raw' / (digest(task_id) + '.json')
+            if path.exists():
+                shutil.copyfile(path, output / 'raw' / path.name)
+        return plan
+
+
 def run_screen(root, plan, *, workers=12, bootstrap=100, transport=None, request_interval=1):
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
@@ -544,6 +638,12 @@ def run_screen(root, plan, *, workers=12, bootstrap=100, transport=None, request
     scenarios = [Scenario.model_validate(s) for s in plan['scenarios']]
     responses, checks, schedule = {}, {}, []
     with run_lock(root):
+        if plan.get('cohort_policy') == 'fixed_prior_complete':
+            schedule = cycle_schedule([m['model'] for m in plan['models']],
+                                      [s.scenario_id for s in scenarios], plan['seed'])
+            saved_schedule = root / 'schedule.json'
+            if not saved_schedule.exists() or json.loads(saved_schedule.read_text(encoding='utf-8')) != schedule:
+                raise ValueError('frozen comparison schedule changed or is missing')
         client = BudgetClient(root, plan, transport=transport,
                               request_interval=request_interval if transport is None else 0)
         def publish(phase, samples=0):
@@ -566,13 +666,18 @@ def run_screen(root, plan, *, workers=12, bootstrap=100, transport=None, request
                 for model, record in zip(specs, pool.map(call, tasks)):
                     responses[(scenario.scenario_id, model['model'])] = record
                 publish('generating')
-            complete = [m['model'] for m in plan['models'] if all(
-                responses[(s.scenario_id, m['model'])].get('status') == 'success' for s in scenarios)]
+            complete = scheduled_cohort(plan, responses)
             if len(complete) >= 3:
                 schedule = cycle_schedule(complete, [s.scenario_id for s in scenarios], plan['seed'])
+                if (root / 'schedule.json').exists() and json.loads((root / 'schedule.json').read_text(encoding='utf-8')) != schedule:
+                    raise ValueError('saved comparison schedule changed')
                 atomic_json(root / 'schedule.json', schedule)
                 for scenario in scenarios:
-                    pairs = [p for p in schedule if p['scenario_id'] == scenario.scenario_id]
+                    pairs = [p for p in schedule if p['scenario_id'] == scenario.scenario_id and pair_available(p, responses)]
+                    for p in schedule:
+                        if p['scenario_id'] == scenario.scenario_id and not pair_available(p, responses):
+                            for reverse in (False, True):
+                                checks[(p['pair_id'], reverse)] = {'status': 'missing_candidate'}
                     tasks = [(f'j:{p["pair_id"]}:{int(reverse)}', judge_payload(plan, p, scenario, responses, reverse))
                              for p in pairs for reverse in (False, True)]
                     keys = [(p['pair_id'], reverse) for p in pairs for reverse in (False, True)]

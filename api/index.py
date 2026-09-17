@@ -38,10 +38,11 @@ def app(environ: dict, start_response: Callable) -> Iterable[bytes]:
     if path in STATIC:
         file, mime = STATIC[path]
         return _response(start_response, "200 OK", mime, (ROOT / "web" / file).read_bytes())
-    if path in {"/api/judge-audit", "/api/collection", "/api/wide-report"}:
+    if path in {"/api/judge-audit", "/api/collection", "/api/wide-report", "/api/wide-baseline"}:
         configured = os.environ.get({"/api/judge-audit": "SHUORENHUA_JUDGE_AUDIT",
                                      "/api/collection": "SHUORENHUA_COLLECTION",
-                                     "/api/wide-report": "SHUORENHUA_WIDE_REPORT"}[path])
+                                     "/api/wide-report": "SHUORENHUA_WIDE_REPORT",
+                                     "/api/wide-baseline": "SHUORENHUA_WIDE_BASELINE"}[path])
         target = Path(configured) if configured else None
         if target is not None and target.is_file():
             return _response(start_response, "200 OK", "application/json", target.read_bytes())

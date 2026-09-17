@@ -12,6 +12,7 @@ from shuorenhua_bench.wide_screen import (
     analyze,
     cycle_schedule,
     make_plan,
+    prepare_expansion,
     prepare_rejudge,
     reanalyze_screen,
     run_screen,
@@ -158,6 +159,10 @@ def test_workbench_serves_only_configured_wide_report(tmp_path, monkeypatch):
     assert result['status'] == '200 OK' and json.loads(result['body'])['report_kind'] == 'wide_screen'
     assert b'wide.js' in request(app, '/wide')['body']
     assert request(app, '/api/wide-report', 'POST')['status'] == '405 Method Not Allowed'
+    monkeypatch.delenv('SHUORENHUA_WIDE_BASELINE', raising=False)
+    assert request(app, '/api/wide-baseline')['status'] == '503 Service Unavailable'
+    monkeypatch.setenv('SHUORENHUA_WIDE_BASELINE', str(report))
+    assert request(app, '/api/wide-baseline')['body'] == result['body']
 
 
 def test_synthetic_transport_complete_screen_and_zero_call_resume(tmp_path):
@@ -257,3 +262,67 @@ def test_separate_provider_pass_reuses_generations_but_no_judge_votes(tmp_path):
     atomic_json(source_ledger, changed)
     with pytest.raises(ValueError, match='provenance changed'):
         reanalyze_screen(destination, bootstrap=0)
+
+
+def test_expansion_reuses_checks_and_retains_models_with_new_missing_responses(tmp_path):
+    from shuorenhua_bench.schemas import Scenario
+    source, output = tmp_path / 'source', tmp_path / 'expanded'
+    p = plan()
+    def send(body):
+        return response(json.dumps({'preference': 'tie', 'action_a': 'send', 'action_b': 'send',
+                                    'confidence': 3, 'rationale': 'fixture'})) if 'response_format' in body else response()
+    run_screen(source, p, transport=send, bootstrap=0)
+    source_bytes = {name: (source / name).read_bytes() for name in ['plan.json', 'requests.json', 'wide-report.json']}
+    suite = [Scenario.model_validate(s) for s in p['scenarios']] + [
+        scenario('s3').model_copy(update={'genre': 'academic'}),
+        scenario('s4').model_copy(update={'genre': 'customer'})]
+    expanded = prepare_expansion(source, output, suite, additional_scenarios=2, budget_usd=1)
+    assert len(set(expanded['scenario_groups'].values())) == 4
+    assert all((source / name).read_bytes() == data for name, data in source_bytes.items())
+    saved_schedule = (output / 'schedule.json').read_bytes()
+    calls = []
+    def incomplete(body):
+        calls.append(body)
+        if 'response_format' not in body and body['model'] == p['models'][0]['model'] and 's3' in body['messages'][1]['content']:
+            return {'error': {'http_status': 503}}
+        return send(body)
+    report = run_screen(output, expanded, transport=incomplete, bootstrap=0)
+    assert len(calls) == 20  # 8 new generations plus 12 available judge checks; 24 reused records.
+    assert report['n_models_ranked'] == 4 and report['n_models_complete'] == 3
+    assert report['n_accepted_pairs'] == 14 and report['n_judge_checks_skipped'] == 4
+    assert report['cost']['reused_judge_requests'] == 16
+    partial = next(row for row in report['rows'] if row['n_generated'] == 3)
+    assert partial['status'] == 'ranked_partial_generation' and partial['losses'] == 0
+    assert (output / 'schedule.json').read_bytes() == saved_schedule
+    rebuilt = reanalyze_screen(output, bootstrap=0)
+    assert rebuilt['rows'] == report['rows'] and rebuilt['campaign_cost']['attempts'] == 44
+    run_screen(output, expanded, transport=lambda _: pytest.fail('cache must prevent new calls'), bootstrap=0)
+    continued = prepare_expansion(output, tmp_path / 'continued',
+                                 suite + [scenario('s5').model_copy(update={'genre': 'public'})],
+                                 additional_scenarios=1, budget_usd=1)
+    assert len(continued['models']) == 4  # Later extensions keep the same fixed cohort.
+
+
+def test_expansion_rejects_changed_or_insufficient_scenario_families(tmp_path):
+    from shuorenhua_bench.schemas import Scenario
+    p = plan(); source = tmp_path / 'source'
+    run_screen(source, p, transport=lambda _: response(), bootstrap=0)
+    suite = [Scenario.model_validate(s) for s in p['scenarios']]
+    with pytest.raises(ValueError, match='unused scenario families'):
+        prepare_expansion(source, tmp_path / 'too-few', suite, additional_scenarios=1)
+    changed = [s.model_copy(update={'instruction': 'changed'}) for s in suite]
+    with pytest.raises(ValueError, match='changed source scenarios'):
+        prepare_expansion(source, tmp_path / 'changed', changed, additional_scenarios=1)
+
+
+def test_changed_expansion_schedule_is_rejected_before_any_paid_calls(tmp_path):
+    from shuorenhua_bench.schemas import Scenario
+    p = plan(); source = tmp_path / 'source'; output = tmp_path / 'expanded'
+    run_screen(source, p, transport=lambda _: response(), bootstrap=0)
+    suite = [Scenario.model_validate(s) for s in p['scenarios']] + [scenario('s3')]
+    expanded = prepare_expansion(source, output, suite, additional_scenarios=1, budget_usd=1)
+    schedule = json.loads((output / 'schedule.json').read_text())
+    schedule.pop()
+    atomic_json(output / 'schedule.json', schedule)
+    with pytest.raises(ValueError, match='frozen comparison schedule changed'):
+        run_screen(output, expanded, transport=lambda _: pytest.fail('must not send'))

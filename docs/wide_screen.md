@@ -91,7 +91,43 @@ ledger, raw request/response records, and `wide-report.json`. Raw error bodies c
 contain provider/account metadata: keep the study directory private. It is ignored
 by Git. Public report failure categories omit raw provider error messages.
 
-## Rebuild offline and view
+## Add depth without repeating paid calls
+
+An existing study can be extended with more scenario families in a new directory:
+
+~~~powershell
+.\.venv\Scripts\python.exe scripts/run_wide_screen.py --extend studies/wide-150-rerouted --output studies/wide-18 --additional-scenarios 12 --budget-usd 6
+.\.venv\Scripts\python.exe scripts/run_wide_screen.py --output studies/wide-18 --resume --execute --workers 16 --request-interval 0.25 --bootstrap-samples 300
+~~~
+
+Preparation validates the earlier evidence without rewriting its report, retains
+its complete-generation model cohort, and freezes all new pairings before new
+responses arrive. Existing compatible generation and judge records are reused;
+their original charges remain included in the local allowance. Added scenarios
+come from unused semantic/template families in the supplied full suite, balancing
+genre counts with a fixed seed. The full suite hash and selected family map are
+saved. This broadens public scenario coverage; it does not create a private test set
+or replace native-speaker review.
+
+The cohort stays fixed on subsequent extensions. New missing or truncated responses
+skip only affected pairs, and do not become preference losses. Models with partial
+generation coverage can retain a point estimate from their available connected
+comparisons; the table marks that status and shows the missing coverage. Compare
+models cautiously when missingness differs. Rank changes relative to the earlier
+snapshot are descriptive, not evidence that a model improved or that ranks differ
+significantly. Bootstrap intervals still follow the connectivity and degeneracy rules.
+
+Serve both snapshots with:
+
+~~~powershell
+.\.venv\Scripts\python.exe scripts/serve_web.py --port 8043 --wide-report studies/wide-18/wide-report.json --wide-baseline studies/wide-150-rerouted/wide-report.json
+~~~
+
+The Study selector switches between the current study and earlier snapshot. The
+earlier report remains available while the expansion is running. Rater-only servers
+also block the baseline endpoint.
+
+## Recover a provider and rebuild offline
 
 If a provider remains unavailable, preserve that pass and prepare a **separate**
 judging study. This copies verified generation records and their cost reservations;

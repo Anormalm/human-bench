@@ -13,13 +13,21 @@ if str(ROOT / 'src') not in sys.path:
 from shuorenhua_bench.dataset import read_jsonl
 from shuorenhua_bench.model_judge import atomic_json
 from shuorenhua_bench.schemas import Scenario
-from shuorenhua_bench.wide_screen import make_plan, prepare_rejudge, reanalyze_screen, run_screen
+from shuorenhua_bench.wide_screen import (
+    make_plan,
+    prepare_expansion,
+    prepare_rejudge,
+    reanalyze_screen,
+    run_screen,
+)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--catalog', type=Path, help='Saved OpenRouter /models JSON, required for new plans')
     parser.add_argument('--reuse-generations', type=Path, help='Start a separate judging study using verified saved candidate responses')
+    parser.add_argument('--extend', type=Path, help='Extend a verified study with more scenario families and reuse compatible checks')
+    parser.add_argument('--additional-scenarios', type=int, default=12)
     parser.add_argument('--judge-provider', help='Provider slug for the new judging pass; requires --reuse-generations')
     parser.add_argument('--scenarios', type=Path, default=ROOT / 'data/prompts/suite_zh_v0.3.jsonl')
     parser.add_argument('--output', type=Path, required=True)
@@ -43,7 +51,12 @@ def main():
         print(json.dumps({k: report[k] for k in ['n_models_ranked', 'n_accepted_pairs', 'cost', 'integrity']}, indent=2))
         return
     path = args.output / 'plan.json'
-    if args.reuse_generations:
+    if args.extend:
+        if args.resume or args.reuse_generations or args.judge_provider:
+            parser.error('--extend needs a new output and preserves the original judge and provider')
+        plan = prepare_expansion(args.extend, args.output, read_jsonl(args.scenarios, Scenario),
+                                 additional_scenarios=args.additional_scenarios, budget_usd=args.budget_usd)
+    elif args.reuse_generations:
         if args.resume or not args.judge_provider:
             parser.error('--reuse-generations requires a new study and --judge-provider')
         plan = prepare_rejudge(args.reuse_generations, args.output, budget_usd=args.budget_usd,

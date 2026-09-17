@@ -52,6 +52,8 @@ For a larger field, the [budgeted model sweep](docs/wide_screen.md) supports 150
 OpenRouter model IDs, shared scenarios, sparse balanced comparisons, persisted cost
 reservations and offline evidence verification. Open **Model sweep** to search its
 exploratory rankings. Model-judged screening is separate from human benchmark evidence.
+Extend a completed screen with additional distinct scenario families while reusing
+compatible paid calls, then compare the expanded ranking with its earlier snapshot.
 
 ## Audit and calibrate judges
 
