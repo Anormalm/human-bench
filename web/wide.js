@@ -78,8 +78,90 @@ function modelRow(x) {
     node('td', x.wins + ' / ' + x.ties + ' / ' + x.losses, 'outcomes'), node('td', money(x.generation_reported_usd), 'cost-cell'), status);
   return row;
 }
+const percent = (count, total) => total ? (count / total * 100).toFixed(1) + '%' : '—';
+function findModel(model) {
+  $('wideSearch').value = model; page = 0; setView(false); render(); $('wideSearch').focus();
+}
+function modelChartLabel(row) {
+  const label = node('span', undefined, 'chart-model');
+  label.append(node('b', row.rank), node('span', displayName(row))); return label;
+}
+function renderOutcomes(best) {
+  const target = $('wideOutcomes'); target.replaceChildren();
+  if (!best.length) { target.append(node('p', 'No ranked models match these filters.', 'small-note')); return; }
+  const maximum = Math.max(4, Math.ceil(Math.max(...best.map(x => x.wins + x.ties + x.losses)) / 4) * 4);
+  const axis = node('div', undefined, 'outcome-axis'), ticks = node('div', undefined, 'axis-ticks');
+  for (let i = 0; i < 5; i++) ticks.append(node('span', maximum * i / 4));
+  axis.append(node('span', 'Model / rank'), ticks, node('span', 'W / T / L')); target.append(axis);
+  for (const x of best) {
+    const button = node('button', undefined, 'outcome-row'), track = node('span', undefined, 'outcome-track');
+    button.type = 'button'; button.title = x.model;
+    button.setAttribute('aria-label', displayName(x) + ', point rank ' + x.rank + '. Wins: ' + x.wins + ', ties: ' +
+      x.ties + ', losses: ' + x.losses + '. ' + x.n_accepted + ' of ' + x.n_planned_comparisons + ' scheduled comparisons accepted. Find in table.');
+    track.setAttribute('aria-hidden', 'true');
+    for (const [key, cls] of [['wins','win'], ['ties','tie'], ['losses','loss']]) {
+      if (!x[key]) continue;
+      const segment = node('span', x[key] / maximum >= .1 ? number(x[key]) : '', 'outcome-segment ' + cls);
+      segment.style.width = x[key] / maximum * 100 + '%'; track.append(segment);
+    }
+    button.append(modelChartLabel(x), track, node('span', x.wins + ' / ' + x.ties + ' / ' + x.losses, 'outcome-value'));
+    button.onclick = () => findModel(x.model); target.append(button);
+  }
+  target.append(node('p', 'Number of accepted comparisons · Each bar starts at zero', 'axis-caption'));
+}
+function legendItem(label, count, total, cls) {
+  const item = node('div', undefined, 'chart-legend-item'), name = node('span');
+  const swatch = node('i', undefined, 'swatch ' + cls); swatch.setAttribute('aria-hidden', 'true');
+  name.append(swatch, node('span', label));
+  item.append(name, node('strong', number(count)), node('small', percent(count, total))); return item;
+}
+function renderCoverage(rows) {
+  const target = $('wideCoverage'); target.replaceChildren();
+  $('coverageScope').textContent = 'All ' + number(rows.length) + ' models matching your filters · Includes unranked models';
+  if (!rows.length) { target.append(node('p', 'No models match these filters.', 'small-note')); return; }
+  const total = rows.reduce((sum, x) => sum + x.n_scenarios, 0), usable = rows.reduce((sum, x) => sum + x.n_generated, 0);
+  const missing = total - usable, complete = rows.filter(x => x.n_generated === x.n_scenarios).length;
+  const metric = node('p', undefined, 'coverage-metric'); metric.append(node('strong', percent(usable, total)), node('span', 'usable responses'));
+  const track = node('div', undefined, 'coverage-track'); track.setAttribute('aria-hidden', 'true');
+  for (const [count, cls] of [[usable, 'usable'], [missing, 'missing']]) {
+    const bar = node('span', undefined, cls); bar.style.width = (total ? count / total * 100 : 0) + '%'; track.append(bar);
+  }
+  const legend = node('div', undefined, 'chart-legend-list');
+  legend.append(legendItem('Usable responses', usable, total, 'usable'), legendItem('Missing / failed / pending', missing, total, 'missing'));
+  const counts = node('div', undefined, 'coverage-summary');
+  counts.append(check('Scheduled responses', number(total)), check('Models with complete responses', number(complete) + ' / ' + number(rows.length)));
+  target.append(metric, track, legend, counts);
+}
+function renderAgreement() {
+  const target = $('wideAgreement'); target.replaceChildren();
+  const total = report.n_pairs_planned, counts = report.order_status_counts || {};
+  $('agreementScope').textContent = 'Full study · ' + number(total) + ' scheduled pairs · Unchanged by model filters';
+  if (!total) { target.append(node('p', 'No scheduled comparisons in this snapshot.', 'small-note')); return; }
+  const groups = [
+    ['Counted', counts.accepted || 0, 'accepted', '#8344ed'],
+    ['Judgment changed', (counts.preference_and_actions_changed || 0) + (counts.actions_changed || 0) + (counts.preference_changed || 0), 'changed', '#dfad51'],
+    ['Invalid / missing judge output', counts.invalid_output || 0, 'invalid', '#c76b7b'],
+    ['Missing candidate response', counts.missing_candidate || 0, 'unavailable-pair', '#abb0bf']
+  ];
+  const remaining = total - groups.reduce((sum, group) => sum + group[1], 0);
+  if (remaining > 0) groups.push(['Other / pending', remaining, 'pending-pair', '#e5e4eb']);
+  const layout = node('div', undefined, 'agreement-layout'), ring = node('div', undefined, 'agreement-ring');
+  const segments = []; let start = 0;
+  for (const [, count, , color] of groups) {
+    if (!count) continue;
+    const end = start + count / total * 100; segments.push(color + ' ' + start + '% ' + end + '%'); start = end;
+  }
+  ring.style.background = 'conic-gradient(' + segments.join(',') + ')'; ring.setAttribute('aria-hidden', 'true');
+  const center = node('div', undefined, 'agreement-center'); center.append(node('strong', percent(groups[0][1], total)), node('span', 'counted')); ring.append(center);
+  const legend = node('div', undefined, 'chart-legend-list');
+  for (const [label, count, cls] of groups) legend.append(legendItem(label, count, total, cls));
+  layout.append(ring, legend); target.append(layout);
+}
 function renderChart(rows) {
-  const best = rows.filter(x => x.rank != null).sort((a,b) => a.rank-b.rank || a.model.localeCompare(b.model)).slice(0,10);
+  const ranked = rows.filter(x => x.rank != null).sort((a,b) => a.rank-b.rank || a.model.localeCompare(b.model));
+  const best = ranked.slice(0, Number($('chartLimit').value));
+  $('chartSelection').textContent = best.length ? 'Showing ' + best.length + ' of ' + ranked.length + ' matching ranked models, ordered by point rank.' : 'No matching ranked models to compare.';
+  renderOutcomes(best); renderCoverage(rows); renderAgreement();
   $('wideChart').replaceChildren();
   $('chartDescription').textContent = best.length ? 'Top ' + best.length + ' matching models by point rank. Lower ranks are better.' +
     (best.some(x => rankInterval(x)) ? '' : ' Intervals are unavailable in this snapshot; only point estimates are shown.') : 'No matching point estimates to display.';
@@ -90,8 +172,8 @@ function renderChart(rows) {
   for (let i=0;i<5;i++) ticks.append(node('span', Math.round(1 + (maximum-1) * i / 4)));
   axis.append(node('span', 'Model / point rank'), ticks, node('span', '95% interval')); $('wideChart').append(axis);
   for (const x of best) {
-    const bounds = rankInterval(x), button = node('button', undefined, 'rank-chart-row'), label = node('span', undefined, 'chart-model');
-    label.append(node('b', x.rank), node('span', displayName(x))); button.title = x.model;
+    const bounds = rankInterval(x), button = node('button', undefined, 'rank-chart-row'), label = modelChartLabel(x);
+    button.title = x.model;
     button.setAttribute('aria-label', displayName(x) + ', point rank ' + x.rank + ', ' +
       (bounds ? '95% rank interval ' + bounds.join(' to ') : 'interval unavailable') + '. Find in table.');
     const track = node('span', undefined, 'chart-track'); track.setAttribute('aria-hidden', 'true');
@@ -103,7 +185,7 @@ function renderChart(rows) {
     }
     track.append(node('i', undefined, 'chart-point'));
     button.append(label, track, node('span', bounds ? bounds.join('–') : 'Unavailable', 'chart-value'));
-    button.onclick = () => { $('wideSearch').value = x.model; page = 0; setView(false); render(); $('wideSearch').focus(); };
+    button.onclick = () => findModel(x.model);
     $('wideChart').append(button);
   }
 }
@@ -168,8 +250,10 @@ async function refresh() {
     if (report.phase !== 'complete') timer = setTimeout(refresh, 10000);
   } catch (error) {
     if (sequence !== refreshSequence) return;
-    report = null; $('wideRows').replaceChildren(); $('wideStats').replaceChildren(); $('wideChecks').replaceChildren(); $('wideChart').replaceChildren();
-    for (const id of ['wideUpdated', 'wideBaseline', 'wideBootstrap', 'wideOrder']) $(id).textContent = '';
+    report = null;
+    for (const id of ['wideRows', 'wideStats', 'wideChecks', 'wideChart', 'wideOutcomes', 'wideCoverage', 'wideAgreement']) $(id).replaceChildren();
+    for (const id of ['wideUpdated', 'wideBaseline', 'wideBootstrap', 'wideOrder', 'chartDescription', 'coverageScope', 'agreementScope']) $(id).textContent = '';
+    $('chartSelection').textContent = 'No report loaded';
     $('wideWarnings').replaceChildren(); $('wideDownload').hidden = true;
     $('widePrevious').disabled = $('wideNext').disabled = true;
     $('wideNotice').textContent = error.message; $('widePage').textContent = 'No report loaded'; $('wideCount').textContent = 'No report loaded';
@@ -177,6 +261,7 @@ async function refresh() {
 }
 $('wideStudy').onchange = () => { page = 0; refresh(); };
 $('wideSearch').oninput = $('wideFilter').onchange = $('wideOrganization').onchange = () => { page = 0; render(); };
+$('chartLimit').onchange = () => { if (report) renderChart(filteredRows()); };
 $('wideReset').onclick = () => {
   $('wideSearch').value = ''; $('wideFilter').value = $('wideOrganization').value = 'all';
   sortKey = 'rank'; sortDirection = 1; page = 0; render();
@@ -189,7 +274,7 @@ for (const button of document.querySelectorAll('[data-sort]')) button.onclick = 
 $('tableTab').onclick = () => setView(false); $('chartTab').onclick = () => setView(true);
 for (const id of ['tableTab','chartTab']) $(id).onkeydown = event => {
   if (['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) {
-    event.preventDefault(); const chart = event.key === 'End' || (event.key !== 'Home' && id === 'tableTab');
+    event.preventDefault(); const chart = event.key === 'Home' || (event.key !== 'End' && id === 'tableTab');
     setView(chart); $(chart ? 'chartTab' : 'tableTab').focus();
   }
 };

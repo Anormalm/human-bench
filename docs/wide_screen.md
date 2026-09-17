@@ -157,10 +157,28 @@ No key or network connection is needed for offline reanalysis:
 Open the [model leaderboard](http://127.0.0.1:8043/wide). Search or filter by model
 organization and response coverage, and sort table columns by point rank, name,
 rank movement, usable scenarios, accepted comparisons, or reported generation cost.
-Reset filters also restores rank order. The Rank uncertainty tab plots the top ten
-matching point estimates and available 95% scenario-bootstrap intervals; selecting
-a plotted model finds it in the table. Interval endpoints are rounded outward to
-whole ranks. Missing intervals remain explicitly unavailable.
+Reset filters also restores rank order. The default Charts view shows four plots:
+
+- Stacked win/tie/loss bars show raw accepted-comparison counts for the top 10,
+  20, or 50 matching ranked models. All bars share a zero-based count scale and
+  stay in point-rank order. Bar length measures accepted evidence volume, not
+  model quality; opponents and coverage differ, and the ranking adjusts for
+  opponents. Missing and rejected comparisons do not become losses.
+- Response coverage shows usable versus missing, failed, or pending responses
+  across **all models matching the filters**, including unranked models. Its
+  denominator is their scheduled model–scenario responses.
+- The judge-agreement donut shows outcomes for **all scheduled pairs in the
+  selected study**, unchanged by model filters. It separates counted comparisons,
+  changed judgments, invalid/missing judge output, missing candidate responses,
+  and other/pending outcomes. Agreement is not evidence of judge correctness.
+- Rank uncertainty shows the same selected models' point estimates and available
+  95% scenario-bootstrap intervals. Endpoints round outward to whole ranks;
+  missing intervals remain explicitly unavailable.
+
+Selecting a model in either comparison plot finds it in the Rankings table.
+Chart legends include counts and denominators, and the model bars expose their
+values to keyboard and screen-reader users. Search, organization, coverage,
+study selection, and chart limits update the relevant plots together.
 
 Summary cards describe the selected study, including reused records. Per-model
 generation costs exclude judge calls and unknown charges; they are not catalog
