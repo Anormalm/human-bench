@@ -10,7 +10,9 @@ ROOT = Path(__file__).resolve().parents[1]
 BUNDLE_PATH = ROOT / "data/web/demo_bundle.json"
 REPORT_PATH = ROOT / "data/web/demo_report.json"
 STATIC = {"/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
-          "/styles.css": ("styles.css", "text/css")}
+          "/annotation.js": ("annotation.js", "text/javascript"),
+          "/styles.css": ("styles.css", "text/css"), "/wide": ("wide.html", "text/html"),
+          "/wide.js": ("wide.js", "text/javascript"), "/wide.css": ("wide.css", "text/css")}
 
 
 def _response(start_response, status, content_type, body):
@@ -36,13 +38,16 @@ def app(environ: dict, start_response: Callable) -> Iterable[bytes]:
     if path in STATIC:
         file, mime = STATIC[path]
         return _response(start_response, "200 OK", mime, (ROOT / "web" / file).read_bytes())
-    if path == "/api/judge-audit":
-        configured = os.environ.get("SHUORENHUA_JUDGE_AUDIT")
+    if path in {"/api/judge-audit", "/api/collection", "/api/wide-report", "/api/wide-baseline"}:
+        configured = os.environ.get({"/api/judge-audit": "SHUORENHUA_JUDGE_AUDIT",
+                                     "/api/collection": "SHUORENHUA_COLLECTION",
+                                     "/api/wide-report": "SHUORENHUA_WIDE_REPORT",
+                                     "/api/wide-baseline": "SHUORENHUA_WIDE_BASELINE"}[path])
         target = Path(configured) if configured else None
         if target is not None and target.is_file():
             return _response(start_response, "200 OK", "application/json", target.read_bytes())
         return _response(start_response, "503 Service Unavailable", "application/json",
-                         b'{"error":"judge audit not configured"}')
+                         b'{"error":"requested report not configured"}')
     if path in {"/api/bundle", "/api/report"}:
         target = (Path(os.environ.get("SHUORENHUA_BUNDLE", str(BUNDLE_PATH))) if path == "/api/bundle"
                   else Path(os.environ.get("SHUORENHUA_REPORT", str(REPORT_PATH))))

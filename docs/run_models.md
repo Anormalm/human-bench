@@ -37,6 +37,24 @@ mechanics; it does not select current frontier models or establish a scientific 
 The judge shares a family with both candidates and is itself one candidate, which can
 bias results. Select and freeze an independent judge for a serious study.
 
+## Three-candidate pilot
+
+A ready-to-run profile compares GPT-5.6 Sol, Terra and Luna with the same Astra judge
+and low reasoning effort for every candidate. Preview it from the repository root:
+
+~~~powershell
+.\.venv\Scripts\python.exe -m shuorenhua_bench.cli run --scenarios data/prompts/suite_zh_v0.3.jsonl --config configs/benchmark.gpt56-pilot.yaml --output studies/gpt56-candidates-pilot --limit 3
+~~~
+
+Append --execute --max-requests 40 to generate nine responses and run eighteen judge
+checks. Use --resume for the exact same completed run. The model identifiers are aliases;
+requested and returned IDs are recorded, but these do not pin immutable backend revisions.
+
+The completed local pilot accepted all nine comparisons as ties. It made 27 API calls
+and established no winner on three independent scenarios. These candidates were compared
+against each other, not directly against the earlier GPT-4.1 candidates. The judge remains
+from the same provider; independent human validation is still needed.
+
 ## Configure your own experiment
 
 Open the workbench's **Run models** page to enter model IDs and download bench-config.json.
@@ -109,8 +127,9 @@ error or human population preferences. Judge-predicted direct use is labeled sep
 
 ## Validate with people
 
-Human packets are frozen before judge calls. Distribute the three packets to three
-independent raters and collect exported JSONL files. Then:
+Human packets are frozen before judge calls. Use the [rater-only workflow](human_validation.md)
+to give independent raters their assignments without exposing model results or judge rationales.
+Collect the exported JSONL files. For a three-rater pilot:
 
 ~~~powershell
 .\.venv\Scripts\python.exe -m shuorenhua_bench.cli evaluate --study studies/first-model-run/human-study --exports exports/rater-001.jsonl exports/rater-002.jsonl exports/rater-003.jsonl --output studies/first-model-run/human-report.json
@@ -122,7 +141,14 @@ Do not select only automatically accepted pairs for human validation: inspect th
 frozen comparison set, including excluded cases. The runner provides packets; it does
 not recruit participants or establish population validity.
 
-## API references
+## Combine multiple batches
+
+For additional disjoint scenario batches using the same configuration, see
+[Combine completed model batches](combine_runs.md). This creates pooled estimates,
+an exclusion-sensitivity diagnostic, a combined judge audit and new blinded assignments
+without making further API calls. It does not turn model predictions into human evidence.
+
+## API references and model configuration
 
 Configuration was checked against official documentation on 2026-09-13:
 [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs),

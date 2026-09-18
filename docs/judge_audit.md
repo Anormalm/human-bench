@@ -115,3 +115,9 @@ all three pairs ties with both responses usable.
 This is a tiny exploratory judge comparison. The result supports repeatability on those
 specific cases; it does not establish that Astra is a calibrated judge, that the candidates
 are equivalent, or that the benchmark is SOTA. Human judgments remain to be collected.
+
+## Check sensitivity to clear differences
+
+Use the separate [constructed controls](judge_controls.md) to test a judge on fixed
+violations and equivalent text. These checks have author-declared expectations; they
+are not human calibration and their results are not pooled into model rankings.

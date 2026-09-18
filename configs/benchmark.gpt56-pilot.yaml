@@ -1,0 +1,45 @@
+# Three-model exploratory pilot; all candidates use low reasoning effort.
+# Model IDs are aliases; requested and returned IDs are recorded.
+system_prompt: 你正在替用户撰写一条真实沟通消息。严格依据给定场景、关系、渠道和事实作答； 不新增事实、承诺或情绪，不解释写作过程，只输出可以直接发送的正文。
+systems:
+- system_id: gpt-5.6-sol
+  model: gpt-5.6-sol
+  base_url: https://api.openai.com/v1
+  api_key_env: OPENAI_API_KEY
+  temperature: null
+  top_p: null
+  max_tokens: 4096
+  token_parameter: max_completion_tokens
+  reasoning_effort: low
+  retries: 2
+- system_id: gpt-5.6-terra
+  model: gpt-5.6-terra
+  base_url: https://api.openai.com/v1
+  api_key_env: OPENAI_API_KEY
+  temperature: null
+  top_p: null
+  max_tokens: 4096
+  token_parameter: max_completion_tokens
+  reasoning_effort: low
+  retries: 2
+- system_id: gpt-5.6-luna
+  model: gpt-5.6-luna
+  base_url: https://api.openai.com/v1
+  api_key_env: OPENAI_API_KEY
+  temperature: null
+  top_p: null
+  max_tokens: 4096
+  token_parameter: max_completion_tokens
+  reasoning_effort: low
+  retries: 2
+judge:
+  model: gpt-6-astra
+  base_url: https://api.openai.com/v1
+  api_key_env: OPENAI_API_KEY
+  temperature: null
+  max_tokens: 4096
+  retries: 2
+  response_format: json_schema
+  top_p: null
+  token_parameter: max_completion_tokens
+  reasoning_effort: low

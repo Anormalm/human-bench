@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from collections import Counter
 from dataclasses import asdict
 from pathlib import Path
@@ -48,7 +49,16 @@ def atomic_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    os.replace(temporary, path)
+    for attempt in range(8):
+        try:
+            os.replace(temporary, path)
+            return
+        except PermissionError as exc:
+            # Windows readers and file scanners can briefly block atomic replacement.
+            # Keep the prior file intact and retry the write, never the paid request.
+            if getattr(exc, 'winerror', None) not in {5, 32, 33} or attempt == 7:
+                raise
+            time.sleep(min(.02 * 2 ** attempt, .32))
 
 
 def digest(value):

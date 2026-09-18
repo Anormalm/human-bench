@@ -48,6 +48,13 @@ See [running and interpreting models](docs/run_models.md) for custom providers, 
 models, existing responses, resume rules and human validation. This smoke profile tests
 mechanics with dated baseline snapshots; it is not a frontier-model recommendation.
 
+For a larger field, the [budgeted model sweep](docs/wide_screen.md) supports 150 cheap
+OpenRouter model IDs, shared scenarios, sparse balanced comparisons, persisted cost
+reservations and offline evidence verification. Open **Model sweep** to search its
+exploratory rankings. Model-judged screening is separate from human benchmark evidence.
+Extend a completed screen with additional distinct scenario families while reusing
+compatible paid calls, then compare the expanded ranking with its earlier snapshot.
+
 ## Audit and calibrate judges
 
 The **Judge audit** page compares judges on identical saved candidate responses and
@@ -62,6 +69,8 @@ reference with explicit coverage, disagreement and provenance.
 The [judge audit guide](docs/judge_audit.md) includes the Astra comparison configuration,
 human-reference commands and offline reanalysis. The original acceptance rule is retained.
 All-tie reports state that no winner is established; collapsed bootstrap intervals are withheld.
+The separate [constructed judge controls](docs/judge_controls.md) check sensitivity to
+clear violations and equivalent text. They never enter the candidate ranking.
 
 ## Study infrastructure from v0.3
 
@@ -213,3 +222,10 @@ fields. Consumers should check schema_version.
 
 See [CHANGELOG](CHANGELOG.md), [benchmark card](docs/benchmark_card.md),
 [research protocol](docs/research_protocol_v03.md) and [data documentation](data/README.md).
+
+For larger model screens, [combine completed batches](docs/combine_runs.md) with
+verified provenance, one fixed judge identity, and a separate exclusion-sensitivity analysis.
+
+Use the [rater-only human-validation workflow](docs/human_validation.md) to collect independent judgments with assigned links and verified exports.
+
+Track missing returns and analysis readiness in the [coordinator Collection view](docs/collection.md).

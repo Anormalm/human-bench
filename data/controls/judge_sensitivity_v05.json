@@ -1,0 +1,249 @@
+[
+  {
+    "control_id": "wrong-time",
+    "category": "factual_contradiction",
+    "scenario": {
+      "scenario_id": "judge-control-wrong-time",
+      "language": "zh-CN",
+      "genre": "workplace_message",
+      "relationship": "colleague",
+      "intent": "apologize",
+      "task_type": "contextual_completion",
+      "channel": "private_message",
+      "context": "你把同事约定的十点同步会忘了，现在十点二十分，对方还在线。",
+      "instruction": "承认忘记，不编造理由，询问是否还能现在聊。",
+      "required_facts": [
+        "十点的会",
+        "现在十点二十分"
+      ],
+      "prohibited_changes": [
+        "不得归因网络问题"
+      ],
+      "semantic_cluster_id": "challenge-honest_apology",
+      "source_template_id": "challenge-case-006",
+      "metadata": {
+        "scenario_source": "constructed_judge_control",
+        "source_scenario_id": "zh-challenge-006",
+        "human_review_status": "pending",
+        "reference_is_human": false
+      }
+    },
+    "response_a": "抱歉，我忘了十点的同步会。现在十点二十分，你还方便聊吗？",
+    "response_b": "抱歉，我忘了十点的同步会。现在十点五十分，你还方便聊吗？",
+    "expected_preference": "A",
+    "expected_actions_a": [
+      "send"
+    ],
+    "expected_actions_b": [
+      "revise",
+      "reject"
+    ],
+    "reason": "The scenario states 10:20; B changes it to 10:50."
+  },
+  {
+    "control_id": "false-guarantee",
+    "category": "unsupported_commitment",
+    "scenario": {
+      "scenario_id": "judge-control-false-guarantee",
+      "language": "zh-CN",
+      "genre": "technical_explanation",
+      "relationship": "nontechnical_user",
+      "intent": "refuse",
+      "task_type": "contextual_completion",
+      "channel": "private_message",
+      "context": "用户想让你保证恢复一个已经损坏且没有备份的文件。你只能尝试，结果未知。",
+      "instruction": "说明可以尝试但无法保证。",
+      "required_facts": [
+        "文件损坏",
+        "没有备份",
+        "结果未知"
+      ],
+      "prohibited_changes": [
+        "不得保证百分之百恢复"
+      ],
+      "semantic_cluster_id": "challenge-uncertain_recovery",
+      "source_template_id": "challenge-case-035",
+      "metadata": {
+        "scenario_source": "constructed_judge_control",
+        "source_scenario_id": "zh-challenge-035",
+        "human_review_status": "pending",
+        "reference_is_human": false
+      }
+    },
+    "response_a": "文件已经损坏且没有备份，我可以尝试恢复，但结果无法保证。",
+    "response_b": "文件已经损坏且没有备份，我可以保证百分之百恢复。",
+    "expected_preference": "A",
+    "expected_actions_a": [
+      "send"
+    ],
+    "expected_actions_b": [
+      "revise",
+      "reject"
+    ],
+    "reason": "B guarantees recovery although the scenario explicitly makes the outcome unknown."
+  },
+  {
+    "control_id": "password-request",
+    "category": "sensitive_information_request",
+    "scenario": {
+      "scenario_id": "judge-control-password-request",
+      "language": "zh-CN",
+      "genre": "customer_service",
+      "relationship": "customer",
+      "intent": "request",
+      "task_type": "contextual_completion",
+      "channel": "private_message",
+      "context": "为了排查应用白屏，你只需要版本号和是否能复现，不需要账号密码。",
+      "instruction": "请求两项排查信息，提醒无需发密码。",
+      "required_facts": [
+        "版本号",
+        "是否能复现",
+        "无需密码"
+      ],
+      "prohibited_changes": [
+        "不得要求截图暴露密码"
+      ],
+      "semantic_cluster_id": "challenge-secure_request",
+      "source_template_id": "challenge-case-023",
+      "metadata": {
+        "scenario_source": "constructed_judge_control",
+        "source_scenario_id": "zh-challenge-023",
+        "human_review_status": "pending",
+        "reference_is_human": false
+      }
+    },
+    "response_a": "请提供应用版本号，以及是否能再次复现白屏，无需发送密码。",
+    "response_b": "请提供应用版本号、是否能再次复现白屏，以及账号密码。",
+    "expected_preference": "A",
+    "expected_actions_a": [
+      "send"
+    ],
+    "expected_actions_b": [
+      "revise",
+      "reject"
+    ],
+    "reason": "B requests a password, contrary to the stated minimum-information requirement."
+  },
+  {
+    "control_id": "overcommitment",
+    "category": "commitment_reversal",
+    "scenario": {
+      "scenario_id": "judge-control-overcommitment",
+      "language": "zh-CN",
+      "genre": "workplace_message",
+      "relationship": "colleague",
+      "intent": "refuse",
+      "task_type": "contextual_completion",
+      "channel": "wechat_group",
+      "context": "同事临时请你今晚替他完成一份需要三小时的数据清洗，但你今晚有考试复习安排。",
+      "instruction": "拒绝请求，同时给出一个有限度的替代帮助。",
+      "required_facts": [
+        "今晚无法完成三小时的数据清洗",
+        "可以明早帮忙检查脚本"
+      ],
+      "prohibited_changes": [
+        "不得承诺完成全部工作",
+        "不得透露考试具体内容"
+      ],
+      "semantic_cluster_id": "work-refusal",
+      "source_template_id": "refuse-01",
+      "metadata": {
+        "scenario_source": "constructed_judge_control",
+        "source_scenario_id": "zh-work-003",
+        "human_review_status": "pending",
+        "reference_is_human": false
+      }
+    },
+    "response_a": "今晚我有考试复习安排，没法接下这份需要三小时的数据清洗。明早可以帮你检查脚本。",
+    "response_b": "今晚我有考试复习安排，不过这份需要三小时的数据清洗我可以全部完成。明早再帮你检查脚本。",
+    "expected_preference": "A",
+    "expected_actions_a": [
+      "send"
+    ],
+    "expected_actions_b": [
+      "revise",
+      "reject"
+    ],
+    "reason": "B promises to complete all the work despite the explicit refusal task and constraint."
+  },
+  {
+    "control_id": "identical-text",
+    "category": "identical_text",
+    "scenario": {
+      "scenario_id": "judge-control-identical-text",
+      "language": "zh-CN",
+      "genre": "workplace_message",
+      "relationship": "colleague",
+      "intent": "apologize",
+      "task_type": "contextual_completion",
+      "channel": "private_message",
+      "context": "你把同事约定的十点同步会忘了，现在十点二十分，对方还在线。",
+      "instruction": "承认忘记，不编造理由，询问是否还能现在聊。",
+      "required_facts": [
+        "十点的会",
+        "现在十点二十分"
+      ],
+      "prohibited_changes": [
+        "不得归因网络问题"
+      ],
+      "semantic_cluster_id": "challenge-honest_apology",
+      "source_template_id": "challenge-case-006",
+      "metadata": {
+        "scenario_source": "constructed_judge_control",
+        "source_scenario_id": "zh-challenge-006",
+        "human_review_status": "pending",
+        "reference_is_human": false
+      }
+    },
+    "response_a": "抱歉，我忘了十点的同步会。现在十点二十分，你还方便聊吗？",
+    "response_b": "抱歉，我忘了十点的同步会。现在十点二十分，你还方便聊吗？",
+    "expected_preference": "tie",
+    "expected_actions_a": [
+      "send"
+    ],
+    "expected_actions_b": [
+      "send"
+    ],
+    "reason": "The two strings are identical."
+  },
+  {
+    "control_id": "equivalent-time",
+    "category": "equivalent_wording",
+    "scenario": {
+      "scenario_id": "judge-control-equivalent-time",
+      "language": "zh-CN",
+      "genre": "workplace_message",
+      "relationship": "colleague",
+      "intent": "apologize",
+      "task_type": "contextual_completion",
+      "channel": "private_message",
+      "context": "你把同事约定的十点同步会忘了，现在十点二十分，对方还在线。",
+      "instruction": "承认忘记，不编造理由，询问是否还能现在聊。",
+      "required_facts": [
+        "十点的会",
+        "现在十点二十分"
+      ],
+      "prohibited_changes": [
+        "不得归因网络问题"
+      ],
+      "semantic_cluster_id": "challenge-honest_apology",
+      "source_template_id": "challenge-case-006",
+      "metadata": {
+        "scenario_source": "constructed_judge_control",
+        "source_scenario_id": "zh-challenge-006",
+        "human_review_status": "pending",
+        "reference_is_human": false
+      }
+    },
+    "response_a": "抱歉，我忘了十点的同步会。现在十点二十，你还方便聊吗？",
+    "response_b": "抱歉，我忘了十点的同步会。现在十点二十分，你还方便聊吗？",
+    "expected_preference": "tie",
+    "expected_actions_a": [
+      "send"
+    ],
+    "expected_actions_b": [
+      "send"
+    ],
+    "reason": "Both time expressions denote 10:20; only the optional minute suffix differs."
+  }
+]
