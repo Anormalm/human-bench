@@ -16,9 +16,11 @@ from shuorenhua_bench.schemas import Scenario
 from shuorenhua_bench.wide_screen import (
     make_plan,
     prepare_expansion,
+    prepare_model_expansion,
     prepare_rejudge,
     reanalyze_screen,
     run_screen,
+    screen_schedule,
 )
 
 
@@ -27,6 +29,9 @@ def main():
     parser.add_argument('--catalog', type=Path, help='Saved OpenRouter /models JSON, required for new plans')
     parser.add_argument('--reuse-generations', type=Path, help='Start a separate judging study using verified saved candidate responses')
     parser.add_argument('--extend', type=Path, help='Extend a verified study with more scenario families and reuse compatible checks')
+    parser.add_argument('--add-models-from', type=Path, help='Enroll explicit models against a verified study, preserving prior evidence')
+    parser.add_argument('--model-ids', nargs='+', help='Exact new model IDs for enrollment')
+    parser.add_argument('--additional-budget-usd', type=float, default=2, help='New request allowance for model enrollment, excluding reused reservations')
     parser.add_argument('--additional-scenarios', type=int, default=12)
     parser.add_argument('--judge-provider', help='Provider slug for the new judging pass; requires --reuse-generations')
     parser.add_argument('--scenarios', type=Path, default=ROOT / 'data/prompts/suite_zh_v0.3.jsonl')
@@ -44,6 +49,10 @@ def main():
     mode.add_argument('--analyze-only', action='store_true', help='Verify and rebuild saved results without API calls')
     parser.add_argument('--resume', action='store_true')
     args = parser.parse_args()
+    if sum(bool(value) for value in (args.extend, args.reuse_generations, args.add_models_from, args.resume)) > 1:
+        parser.error('choose only one source or resume mode')
+    if args.model_ids and not args.add_models_from:
+        parser.error('--model-ids requires --add-models-from')
     if args.bootstrap_samples < 0:
         parser.error('bootstrap samples must be nonnegative')
     if args.analyze_only:
@@ -51,7 +60,13 @@ def main():
         print(json.dumps({k: report[k] for k in ['n_models_ranked', 'n_accepted_pairs', 'cost', 'integrity']}, indent=2))
         return
     path = args.output / 'plan.json'
-    if args.extend:
+    if args.add_models_from:
+        if not args.catalog or not args.model_ids or args.judge_provider:
+            parser.error('--add-models-from requires --catalog and --model-ids, and preserves the judge provider')
+        catalog = json.loads(args.catalog.read_text(encoding='utf-8'))['data']
+        plan = prepare_model_expansion(args.add_models_from, args.output, catalog, args.model_ids,
+                                       additional_budget_usd=args.additional_budget_usd)
+    elif args.extend:
         if args.resume or args.reuse_generations or args.judge_provider:
             parser.error('--extend needs a new output and preserves the original judge and provider')
         plan = prepare_expansion(args.extend, args.output, read_jsonl(args.scenarios, Scenario),
@@ -83,8 +98,10 @@ def main():
         wanted = {m['model'] for m in plan['models']} | {plan['judge']['model']}
         atomic_json(args.output / 'catalog-selected.json', [m for m in catalog if m['id'] in wanted])
     n, s = len(plan['models']), len(plan['scenarios'])
+    pairs = len(screen_schedule(plan, {})) if plan.get('cohort_policy') else n * s
     print(json.dumps({'models': n, 'scenarios': s, 'planned_generations': n * s,
-                      'maximum_cycle_pairs': n * s, 'maximum_judge_checks': n * s * 2,
+                      'maximum_pairs': pairs, 'maximum_judge_checks': pairs * 2,
+                      'new_models': len(plan.get('model_expansion', {}).get('added_models', [])),
                       'budget_usd': plan['budget_usd'], 'execute': args.execute,
                       'judge': plan['judge']['model'], 'output': str(args.output)}, indent=2), flush=True)
     if args.execute:
