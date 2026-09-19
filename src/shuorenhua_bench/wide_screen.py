@@ -572,6 +572,8 @@ def prepare_rejudge(source, output, *, budget_usd, judge_provider):
         (output / 'raw').mkdir()
         atomic_json(output / 'plan.json', plan)
         atomic_json(output / 'requests.json', state)
+        if plan.get('cohort_policy') in {'fixed_prior_complete', 'fixed_model_expansion'}:
+            atomic_json(output / 'schedule.json', screen_schedule(plan, {}))
         for task_id in entries:
             path = source / 'raw' / (digest(task_id) + '.json')
             if path.exists():

@@ -364,6 +364,17 @@ def test_enrollment_preserves_paid_evidence_and_connects_new_model(tmp_path):
     assert rebuilt['rows'] == result['rows'] and rebuilt['cost'] == result['cost']
     assert rebuilt['campaign_cost']['attempts'] == 34
     run_screen(output, expanded, transport=lambda _: pytest.fail('must reuse every request'), bootstrap=0)
+    # Provider recovery must retain an enrolled study's fixed bridge schedule.
+    rerouted_root = tmp_path / 'rerouted-enrollment'
+    rerouted = prepare_rejudge(output, rerouted_root, budget_usd=1, judge_provider='fixture')
+    recovered_calls = []
+    def recover(body):
+        recovered_calls.append(body)
+        assert 'response_format' in body and body['provider']['only'] == ['fixture']
+        return enrollment_response(body)
+    recovered = run_screen(rerouted_root, rerouted, transport=recover, bootstrap=0)
+    assert len(recovered_calls) == 24 and recovered['n_models_ranked'] == 5
+    assert reanalyze_screen(rerouted_root, bootstrap=0)['rows'] == recovered['rows']
 
 
 def test_enrollment_reserves_at_candidate_prices_without_raising_judge_prices(tmp_path):
