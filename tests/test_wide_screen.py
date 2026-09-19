@@ -13,6 +13,7 @@ from shuorenhua_bench.wide_screen import (
     cycle_schedule,
     make_plan,
     prepare_expansion,
+    prepare_model_expansion,
     prepare_rejudge,
     reanalyze_screen,
     run_screen,
@@ -328,3 +329,94 @@ def test_changed_expansion_schedule_is_rejected_before_any_paid_calls(tmp_path):
     atomic_json(output / 'schedule.json', schedule)
     with pytest.raises(ValueError, match='frozen comparison schedule changed'):
         run_screen(output, expanded, transport=lambda _: pytest.fail('must not send'))
+
+
+def enrollment_catalog():
+    premium = copy.deepcopy(catalog()[0])
+    premium.update(id='new/premium', name='New premium', canonical_slug='new/premium')
+    premium['pricing'] = {'prompt': '.000002', 'completion': '.00001'}
+    return catalog() + [premium]
+
+
+def enrollment_response(body):
+    return response(json.dumps({'preference': 'tie', 'action_a': 'send', 'action_b': 'send',
+                                'confidence': 3, 'rationale': 'fixture'})) if 'response_format' in body else response()
+
+
+def test_enrollment_preserves_paid_evidence_and_connects_new_model(tmp_path):
+    source, output = tmp_path / 'source', tmp_path / 'enrolled'
+    original = run_screen(source, plan(), transport=enrollment_response, bootstrap=0)
+    frozen = {name: (source / name).read_bytes() for name in ['plan.json', 'requests.json', 'schedule.json', 'wide-report.json']}
+    expanded = prepare_model_expansion(source, output, enrollment_catalog(), ['new/premium'], additional_budget_usd=.2)
+    assert expanded['budget_usd'] == pytest.approx(original['cost']['charged_or_reserved_usd'] + .2)
+    calls = []
+    def send(body):
+        calls.append(body)
+        assert 'response_format' in body or body['model'] == 'new/premium'
+        return enrollment_response(body)
+    result = run_screen(output, expanded, transport=send, bootstrap=0)
+    assert len(calls) == 10  # Two generations and two orders for four new bridge pairs.
+    assert result['cost']['reused_requests'] == 24
+    assert result['n_models_ranked'] == 5 and result['n_accepted_pairs'] == 12
+    assert result['n_models_added'] == 1 and result['baseline_n_models'] == 4
+    assert all((source / name).read_bytes() == raw for name, raw in frozen.items())
+    rebuilt = reanalyze_screen(output, bootstrap=0)
+    assert rebuilt['rows'] == result['rows'] and rebuilt['cost'] == result['cost']
+    assert rebuilt['campaign_cost']['attempts'] == 34
+    run_screen(output, expanded, transport=lambda _: pytest.fail('must reuse every request'), bootstrap=0)
+    # Provider recovery must retain an enrolled study's fixed bridge schedule.
+    rerouted_root = tmp_path / 'rerouted-enrollment'
+    rerouted = prepare_rejudge(output, rerouted_root, budget_usd=1, judge_provider='fixture')
+    recovered_calls = []
+    def recover(body):
+        recovered_calls.append(body)
+        assert 'response_format' in body and body['provider']['only'] == ['fixture']
+        return enrollment_response(body)
+    recovered = run_screen(rerouted_root, rerouted, transport=recover, bootstrap=0)
+    assert len(recovered_calls) == 24 and recovered['n_models_ranked'] == 5
+    assert reanalyze_screen(rerouted_root, bootstrap=0)['rows'] == recovered['rows']
+
+
+def test_enrollment_reserves_at_candidate_prices_without_raising_judge_prices(tmp_path):
+    from shuorenhua_bench.schemas import Scenario
+    from shuorenhua_bench.wide_screen import generation_payload
+    source, output = tmp_path / 'source', tmp_path / 'enrolled'
+    run_screen(source, plan(), transport=enrollment_response, bootstrap=0)
+    expanded = prepare_model_expansion(source, output, enrollment_catalog(), ['new/premium'], additional_budget_usd=.03)
+    body = generation_payload(expanded, expanded['models'][-1], Scenario.model_validate(expanded['scenarios'][0]))
+    assert body['provider']['max_price']['completion'] == pytest.approx(11)
+    assert expanded['provider']['max_price']['completion'] == 3
+    client = BudgetClient(output, expanded, transport=lambda _: pytest.fail('new candidate reservation exceeds allowance'))
+    with pytest.raises(BudgetStop):
+        client.request('new-task', body)
+    cheaper = copy.deepcopy(body); cheaper['provider'] = expanded['provider']
+    with pytest.raises(ValueError, match='price ceilings'):
+        client.request('new-task', cheaper)
+
+
+def test_enrollment_keeps_partial_new_model_and_rejects_changed_schedule(tmp_path):
+    source, output = tmp_path / 'source', tmp_path / 'enrolled'
+    run_screen(source, plan(), transport=enrollment_response, bootstrap=0)
+    expanded = prepare_model_expansion(source, output, enrollment_catalog(), ['new/premium'])
+    def send(body):
+        if body['model'] == 'new/premium' and 's1' in body['messages'][1]['content']:
+            return {'error': {'http_status': 503}}
+        return enrollment_response(body)
+    result = run_screen(output, expanded, transport=send, bootstrap=0)
+    added = next(r for r in result['rows'] if r['model'] == 'new/premium')
+    assert added['rank'] is not None and added['n_generated'] == 1 and added['losses'] == 0
+    assert result['n_judge_checks_skipped'] == 4
+    assert reanalyze_screen(output, bootstrap=0)['rows'] == result['rows']
+    schedule = json.loads((output / 'schedule.json').read_text()); schedule.pop()
+    atomic_json(output / 'schedule.json', schedule)
+    with pytest.raises(ValueError, match='frozen comparison schedule changed'):
+        run_screen(output, expanded, transport=lambda _: pytest.fail('must not send'), bootstrap=0)
+
+
+@pytest.mark.parametrize('bad_id', ['one/a', 'openai/gpt-5.6-luna', 'absent/model'])
+def test_enrollment_rejects_duplicate_judge_and_unknown_models(tmp_path, bad_id):
+    source = tmp_path / 'source'
+    run_screen(source, plan(), transport=enrollment_response, bootstrap=0)
+    with pytest.raises(ValueError, match='model'):
+        prepare_model_expansion(source, tmp_path / 'bad', enrollment_catalog(), [bad_id])
+    assert not (tmp_path / 'bad').exists()

@@ -37,7 +37,7 @@ function filteredRows() {
   const query = $('wideSearch').value.trim().toLowerCase(), filter = $('wideFilter').value;
   return report.rows.filter(x => (x.model + ' ' + x.name + ' ' + orgLabel(organization(x))).toLowerCase().includes(query) &&
     ($('wideOrganization').value === 'all' || organization(x) === $('wideOrganization').value) &&
-    (filter === 'all' || (filter === 'complete' && x.n_generated === x.n_scenarios) ||
+    (filter === 'all' || (filter === 'new' && x.is_new_model) || (filter === 'complete' && x.n_generated === x.n_scenarios) ||
       (filter === 'partial' && x.n_generated < x.n_scenarios) ||
       (filter === 'ranked' && x.rank != null) || (filter === 'unranked' && x.rank == null)));
 }
@@ -62,6 +62,7 @@ function modelRow(x) {
   mark.style.setProperty('--org-bg', `hsl(${hue} 35% 94%)`); mark.style.setProperty('--org-color', `hsl(${hue} 35% 35%)`);
   mark.setAttribute('aria-hidden', 'true');
   const name = node('div'); name.append(node('strong', displayName(x)), node('small', x.model));
+  if (x.is_new_model) name.querySelector('strong').append(node('span', 'New', 'new-model-badge'));
   identity.append(mark, name); model.append(identity);
   const change = node('td', undefined, 'rank-change ' + (x.rank_change > 0 ? 'up' : x.rank_change < 0 ? 'down' : 'neutral'));
   change.textContent = x.rank_change == null ? '—' : (x.rank_change > 0 ? '+' : '') + x.rank_change;
@@ -212,8 +213,13 @@ function render() {
     ...(c.reused_requests ? [check('Reused request records (no new calls)', c.reused_requests)] : []),
     ...(c.reused_judge_requests ? [check('Reused generations / judge checks', c.reused_generation_requests + ' / ' + c.reused_judge_requests)] : []),
     ...(r.n_judge_checks_skipped ? [check('Checks skipped for missing candidate text', r.n_judge_checks_skipped)] : []));
-  $('wideBaseline').textContent = r.baseline_n_scenarios ? 'Change vs. ' + r.baseline_n_scenarios +
+  $('wideBaseline').textContent = r.baseline_n_scenarios ? 'Change vs. ' +
+    (r.baseline_n_models ? r.baseline_n_models + ' models / ' : '') + r.baseline_n_scenarios +
     ' scenarios · Descriptive movement, not significant improvement.' : 'Point estimates from this snapshot · No earlier rank comparison.';
+  $('wideSchedule').textContent = (r.n_models_added ? r.n_models_added +
+    ' new models each face two seeded prior-model opponents per scenario; prior comparisons are retained. ' :
+    'Each scheduled model has two opponents per scenario. ') +
+    'The judge sees both display orders. Preference and both usability labels must agree for the pair to count.';
   $('wideBootstrap').textContent = 'Scenario families: ' + r.bootstrap.n_scenario_groups +
     ' · Bootstrap fits: ' + (r.bootstrap.attempts - r.bootstrap.lost_fits) + ' / ' + r.bootstrap.attempts +
     (r.bootstrap.intervals_withheld ? '. Intervals withheld because too many resamples lost connectivity or failed to fit.' :

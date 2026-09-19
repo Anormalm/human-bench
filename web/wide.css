@@ -1,4 +1,5 @@
 :root{--bg:#f2f3f5;--ink:#1d1a22;--muted:#68656f;--line:#e7e5eb;--purple:#8344ed;--purple-dark:#6430bb;--tint:#f1eafa}
+.new-model-badge{display:inline-block;margin-left:7px;padding:1px 5px;font-size:9px;font-weight:500;border-radius:3px;color:var(--purple-dark);background:var(--tint)}
 *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:24px}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 Arial,"Microsoft YaHei",sans-serif}
 button,input,select{font:inherit;color:inherit}button,select,summary{cursor:pointer}a{color:inherit;text-decoration:none}

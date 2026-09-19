@@ -54,6 +54,10 @@ reservations and offline evidence verification. Open **Model sweep** to search i
 exploratory rankings. Model-judged screening is separate from human benchmark evidence.
 Extend a completed screen with additional distinct scenario families while reusing
 compatible paid calls, then compare the expanded ranking with its earlier snapshot.
+You can also enroll exact new model IDs on the same scenarios with a separate new-call
+allowance, including candidates priced above the original cheap sweep. Prior evidence
+is retained, new models face seeded existing opponents, and the ranking is fitted jointly.
+The same guide documents price ceilings, frozen settings, and the newly added model filter.
 
 ## Audit and calibrate judges
 

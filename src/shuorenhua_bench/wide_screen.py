@@ -203,10 +203,35 @@ def cycle_schedule(models, scenarios, seed):
 
 def scheduled_cohort(plan, responses):
     names = [m['model'] for m in plan['models']]
-    if plan.get('cohort_policy') == 'fixed_prior_complete':
+    if plan.get('cohort_policy') in {'fixed_prior_complete', 'fixed_model_expansion'}:
         return names
     return [m for m in names if all(responses.get((s['scenario_id'], m), {}).get('status') == 'success'
                                    for s in plan['scenarios'])]
+
+
+def screen_schedule(plan, responses):
+    expansion = plan.get('model_expansion')
+    if expansion:
+        rows = deepcopy(expansion['inherited_schedule'])
+        for scenario in plan['scenarios']:
+            sid = scenario['scenario_id']
+            anchors = sorted(expansion['anchor_models'])
+            random.Random(f'{plan["seed"]}:enroll:{sid}').shuffle(anchors)
+            for i, model in enumerate(sorted(expansion['added_models'])):
+                for offset in (0, 1):
+                    a, b = sorted((model, anchors[(2 * i + offset) % len(anchors)]))
+                    rows.append({'pair_id': digest([sid, a, b])[:20], 'scenario_id': sid,
+                                 'model_a': a, 'model_b': b})
+        return rows
+    cohort = scheduled_cohort(plan, responses)
+    return cycle_schedule(cohort, [s['scenario_id'] for s in plan['scenarios']], plan['seed']) if len(cohort) >= 3 else []
+
+
+def request_provider(plan, model):
+    if model == plan['judge']['model']:
+        return plan['judge'].get('provider', plan['provider'])
+    spec = next((m for m in plan['models'] if m['model'] == model), {})
+    return spec.get('provider', plan['provider'])
 
 
 def pair_available(pair, responses):
@@ -268,8 +293,7 @@ class BudgetClient:
                               'message': exc.read(3000).decode('utf-8', errors='replace')}}
 
     def request(self, task_id, payload):
-        provider = (self.plan['judge'].get('provider', self.plan['provider'])
-                    if payload.get('model') == self.plan['judge']['model'] else self.plan['provider'])
+        provider = request_provider(self.plan, payload.get('model'))
         if payload.get('provider') != provider:
             raise ValueError('request must retain the frozen provider price ceilings')
         limit = payload.get('max_tokens')
@@ -292,7 +316,7 @@ class BudgetClient:
                 return {'status': 'unknown_after_interruption', 'task_id': task_id}
             # Conservative reservation: UTF-8 payload bytes plus overhead, at least 8192
             # input tokens; twice the requested output allowance. Provider pricing is capped.
-            rates = self.plan['provider']['max_price']
+            rates = provider['max_price']
             input_allowance = max(8192, len(json.dumps(payload, ensure_ascii=False).encode()) + 1024)
             reservation = (input_allowance * rates['prompt'] + 2 * limit * rates['completion']) / 1e6
             totals = self.totals()
@@ -332,7 +356,7 @@ class BudgetClient:
 def generation_payload(plan, spec, scenario):
     return {'model': spec['model'], 'messages': [{'role': 'system', 'content': plan['system_prompt']},
             {'role': 'user', 'content': render_prompt(scenario)}], 'max_tokens': plan['candidate_max_tokens'],
-            'provider': plan['provider'], **spec['options']}
+            'provider': request_provider(plan, spec['model']), **spec['options']}
 
 
 def judge_payload(plan, pair, scenario, responses, reverse=False):
@@ -412,6 +436,7 @@ def analyze(plan, responses, schedule, checks, costs, *, phase, bootstrap=0):
             bounds = [float(x) for x in np.quantile(values, [.025, .975])]
             return None if abs(bounds[1] - bounds[0]) < 1e-10 else bounds
         rows.append({'model': m, 'name': model['name'], 'n_generated': n_success,
+                     'is_new_model': m in plan.get('model_expansion', {}).get('added_models', []),
                      'n_scenarios': len(scenario_ids), 'n_accepted': len(votes),
                      'n_planned_comparisons': sum(m in (p['model_a'], p['model_b']) for p in schedule),
                      'wins': votes.count('A'), 'ties': votes.count('tie'), 'losses': votes.count('B'),
@@ -439,6 +464,9 @@ def analyze(plan, responses, schedule, checks, costs, *, phase, bootstrap=0):
             'judge_provider_policy': plan['judge'].get('provider', plan['provider']),
             'cohort_policy': plan.get('cohort_policy', 'complete_generations'),
             'baseline_n_scenarios': plan.get('baseline', {}).get('n_scenarios'),
+            'baseline_n_models': plan.get('baseline', {}).get('n_models'),
+            'n_models_added': len(plan.get('model_expansion', {}).get('added_models', [])),
+            'schedule_description': plan['schedule'],
             'n_judge_checks_skipped': sum(c.get('status') == 'missing_candidate' for c in checks.values()),
             'rows': rows, 'order_status_counts': dict(Counter(d['status'] for d in diagnostics)),
             'components': components, 'bootstrap': {'attempts': bootstrap if fit is not None else 0, 'lost_fits': lost,
@@ -448,8 +476,8 @@ def analyze(plan, responses, schedule, checks, costs, *, phase, bootstrap=0):
                     'iterations': fit.iterations, 'gradient_norm': fit.gradient_norm} if fit else None,
             'warnings': [f'Exploratory screening on {len(scenario_ids)} public AI-authored Chinese scenarios; no supported overall winner.',
                          'Rank intervals resample whole scenario families. Intervals are withheld if over 10% of fits fail, fewer than 20 survive, or the interval collapses.',
-                         ('The cohort and all pairings are fixed from prior generation availability. New failures skip affected pairs, not whole models; inspect unequal coverage.'
-                          if plan.get('cohort_policy') == 'fixed_prior_complete' else
+                         ('The cohort and pairings are frozen before new responses. Missing responses skip affected pairs, not whole models; inspect unequal coverage.'
+                          if plan.get('cohort_policy') in {'fixed_prior_complete', 'fixed_model_expansion'} else
                           'Only complete-generation models enter the sparse schedule. Failure is not a preference loss.'),
                          'Rank covers the largest connected accepted-comparison component; disconnected models are not ordered against it.',
                          'Model judge predictions are not human preference evidence. Price and token limits restrict the population of models.',
@@ -496,8 +524,7 @@ def reanalyze_screen(root, *, bootstrap=100, write_report=True):
         scenarios = [Scenario.model_validate(s) for s in plan['scenarios']]
         responses = {(s.scenario_id, m['model']): read(f'g:{s.scenario_id}:{m["model"]}', generation_payload(plan, m, s))
                      for s in scenarios for m in plan['models']}
-        complete = scheduled_cohort(plan, responses)
-        expected = cycle_schedule(complete, [s.scenario_id for s in scenarios], plan['seed']) if len(complete) >= 3 else []
+        expected = screen_schedule(plan, responses)
         schedule_path = root / 'schedule.json'
         schedule = json.loads(schedule_path.read_text(encoding='utf-8')) if schedule_path.exists() else []
         if schedule and schedule != expected:
@@ -545,6 +572,8 @@ def prepare_rejudge(source, output, *, budget_usd, judge_provider):
         (output / 'raw').mkdir()
         atomic_json(output / 'plan.json', plan)
         atomic_json(output / 'requests.json', state)
+        if plan.get('cohort_policy') in {'fixed_prior_complete', 'fixed_model_expansion'}:
+            atomic_json(output / 'schedule.json', screen_schedule(plan, {}))
         for task_id in entries:
             path = source / 'raw' / (digest(task_id) + '.json')
             if path.exists():
@@ -563,6 +592,8 @@ def prepare_expansion(source, output, scenarios, *, additional_scenarios=12, bud
     verified = reanalyze_screen(source, bootstrap=0, write_report=False)
     with run_lock(source):
         original = json.loads((source / 'plan.json').read_text(encoding='utf-8'))
+        if original.get('model_expansion'):
+            raise ValueError('scenario expansion after model enrollment needs a new protocol; keep the enrolled study frozen')
         ledger = json.loads((source / 'requests.json').read_text(encoding='utf-8'))
         if digest(ledger) != verified['integrity']['ledger_hash']:
             raise ValueError('source ledger changed after verification')
@@ -622,6 +653,82 @@ def prepare_expansion(source, output, scenarios, *, additional_scenarios=12, bud
         return plan
 
 
+def prepare_model_expansion(source, output, catalog, model_ids, *, additional_budget_usd=2,
+                            max_input_price=3, max_output_price=15):
+    """Preserve prior evidence and freeze two old-model opponents for each new model/case."""
+    source, output = Path(source).resolve(), Path(output).resolve()
+    if (output.exists() or not np.isfinite(additional_budget_usd) or not 0 < additional_budget_usd <= 20
+            or not 0 < max_input_price <= 3 or not 0 < max_output_price <= 15
+            or not model_ids or len(set(model_ids)) != len(model_ids)):
+        raise ValueError('model expansion needs a new output, unique IDs, and bounded positive prices and budget')
+    verified = reanalyze_screen(source, bootstrap=0, write_report=False)
+    if verified['integrity']['not_sent_generations'] or verified['integrity']['not_sent_judge_checks']:
+        raise ValueError('finish the source schedule before enrolling models')
+    with run_lock(source):
+        original = json.loads((source / 'plan.json').read_text(encoding='utf-8'))
+        ledger = json.loads((source / 'requests.json').read_text(encoding='utf-8'))
+        if digest(ledger) != verified['integrity']['ledger_hash']:
+            raise ValueError('source ledger changed after verification')
+        anchors = sorted(r['model'] for r in verified['rows'] if r['n_generated'] == r['n_scenarios'])
+        if len(anchors) < 3:
+            raise ValueError('model expansion requires three complete anchor models')
+        by_id = {m['id']: m for m in catalog}
+        seen = {m.get('canonical_slug') or m['model'] for m in original['models']}
+        seen.add(by_id.get(original['judge']['model'], {}).get('canonical_slug') or original['judge']['model'])
+        old_ids = {m['model'] for m in original['models']} | {original['judge']['model']}
+        added = []
+        for name in model_ids:
+            model = by_id.get(name)
+            if not model:
+                raise ValueError(f'model absent from catalog: {name}')
+            arch, prices = model.get('architecture', {}), model['pricing']
+            ip, op = float(prices.get('prompt', 0)) * 1e6, float(prices.get('completion', 0)) * 1e6
+            canonical = model.get('canonical_slug') or name
+            if (name in old_ids or canonical in seen or '/' not in name or ':' in name
+                    or name.endswith('-latest') or name.startswith(('~', 'openrouter/', 'stealth/'))
+                    or SPECIALIST.search(name) or arch.get('output_modalities') != ['text']
+                    or 'text' not in arch.get('input_modalities', [])
+                    or 'max_tokens' not in model.get('supported_parameters', [])
+                    or not 0 < ip <= max_input_price or not 0 < op <= max_output_price
+                    or float(prices.get('request', 0)) != 0):
+                raise ValueError(f'model is duplicate, judge, unsuitable, or exceeds price ceiling: {name}')
+            seen.add(canonical)
+            provider = deepcopy(original['provider'])
+            provider['max_price'] = {'prompt': min(max_input_price, ip * 1.1),
+                                     'completion': min(max_output_price, op * 1.1), 'request': 0}
+            added.append({'model': name, 'name': model['name'], 'canonical_slug': canonical,
+                          'catalog_pricing': prices, 'options': reasoning_options(model), 'provider': provider})
+        inherited = json.loads((source / 'schedule.json').read_text(encoding='utf-8'))
+        entries = deepcopy(ledger['entries'])
+        budget = sum(e['accounted_cost'] for e in entries.values()) + additional_budget_usd
+        if budget > 20:
+            raise ValueError('imported reservations plus additional budget must not exceed $20')
+        plan = deepcopy(original)
+        plan.update(models=deepcopy(original['models']) + added, budget_usd=budget,
+                    max_requests=len(entries) + len(added) * len(original['scenarios']) * 5,
+                    created_at=datetime.now(timezone.utc).isoformat(), cohort_policy='fixed_model_expansion',
+                    generation_source={'path': os.path.relpath(source, output), 'plan_hash': digest(original),
+                                       'ledger_hash': digest(ledger), 'reuse_mode': 'generations_and_judge_checks'},
+                    baseline={'n_scenarios': len(original['scenarios']), 'n_models': len(original['models']),
+                              'ranks': {r['model']: r['rank'] for r in verified['rows']}},
+                    model_expansion={'added_models': model_ids, 'anchor_models': anchors,
+                                     'inherited_schedule': inherited, 'additional_budget_usd': additional_budget_usd,
+                                     'catalog_hash': digest(catalog)},
+                    schedule='Retain all prior pairs; each new model gets two seeded complete prior-model opponents per scenario. No outcome-based opponent selection.',
+                    selection='Explicit catalog-validated model enrollment, exact canonical deduplication; same frozen scenarios, prompts, token limits and judge.')
+        output.mkdir(parents=True); (output / 'raw').mkdir()
+        atomic_json(output / 'plan.json', plan)
+        atomic_json(output / 'schedule.json', screen_schedule(plan, {}))
+        atomic_json(output / 'requests.json', {'plan_hash': digest(plan), 'budget_usd': budget,
+                                              'entries': entries, 'imported_tasks': sorted(entries)})
+        atomic_json(output / 'catalog-added.json', [by_id[name] for name in model_ids])
+        for task_id in entries:
+            path = source / 'raw' / (digest(task_id) + '.json')
+            if path.exists():
+                shutil.copyfile(path, output / 'raw' / path.name)
+        return plan
+
+
 def run_screen(root, plan, *, workers=12, bootstrap=100, transport=None, request_interval=1):
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
@@ -638,9 +745,8 @@ def run_screen(root, plan, *, workers=12, bootstrap=100, transport=None, request
     scenarios = [Scenario.model_validate(s) for s in plan['scenarios']]
     responses, checks, schedule = {}, {}, []
     with run_lock(root):
-        if plan.get('cohort_policy') == 'fixed_prior_complete':
-            schedule = cycle_schedule([m['model'] for m in plan['models']],
-                                      [s.scenario_id for s in scenarios], plan['seed'])
+        if plan.get('cohort_policy') in {'fixed_prior_complete', 'fixed_model_expansion'}:
+            schedule = screen_schedule(plan, {})
             saved_schedule = root / 'schedule.json'
             if not saved_schedule.exists() or json.loads(saved_schedule.read_text(encoding='utf-8')) != schedule:
                 raise ValueError('frozen comparison schedule changed or is missing')
@@ -668,7 +774,7 @@ def run_screen(root, plan, *, workers=12, bootstrap=100, transport=None, request
                 publish('generating')
             complete = scheduled_cohort(plan, responses)
             if len(complete) >= 3:
-                schedule = cycle_schedule(complete, [s.scenario_id for s in scenarios], plan['seed'])
+                schedule = screen_schedule(plan, responses)
                 if (root / 'schedule.json').exists() and json.loads((root / 'schedule.json').read_text(encoding='utf-8')) != schedule:
                     raise ValueError('saved comparison schedule changed')
                 atomic_json(root / 'schedule.json', schedule)
