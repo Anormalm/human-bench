@@ -127,6 +127,57 @@ The Study selector switches between the current study and earlier snapshot. The
 earlier report remains available while the expansion is running. Rater-only servers
 also block the baseline endpoint.
 
+## Add models to an existing ranking
+
+Enroll exact catalog IDs in a new study while retaining every previous response,
+comparison, charge and uncertain reservation:
+
+~~~powershell
+.\.venv\Scripts\python.exe scripts/run_wide_screen.py --add-models-from studies/wide-18 --catalog model-catalog.json --model-ids anthropic/claude-sonnet-5 openai/gpt-5.6-sol --output studies/wide-enrolled --additional-budget-usd 2
+.\.venv\Scripts\python.exe scripts/run_wide_screen.py --output studies/wide-enrolled --resume --execute --workers 12 --request-interval 0.25 --bootstrap-samples 300
+~~~
+
+`configs/wide_models.expansion.json` records the 28-ID selection checked on
+2026-09-19. In PowerShell, load it with
+`$additionalModelIds = Get-Content configs/wide_models.expansion.json -Raw | ConvertFrom-Json`
+and pass `--model-ids $additionalModelIds`. Recheck a fresh catalog and the source
+cohort before preparing; duplicates and models outside the price limits fail.
+The leaderboard's **Newly added models** filter selects the enrolled IDs while
+preserving their positions in the full-study ranking.
+
+Availability and prices must pass validation against the saved current catalog;
+these example IDs are not a promise of future availability. New candidates must
+advertise text output, token-limit support, no per-request charge, input pricing
+at most $3/M and output pricing at most $15/M. Judge IDs, canonical duplicates,
+routing aliases and known specialist categories are excluded. Each new model's
+provider limits allow at most 10% above its catalog token prices, bounded by those
+ceilings. Prior candidate and judge requests retain their original limits.
+
+`--additional-budget-usd` caps **new scheduling allowance**, unlike the total
+`--budget-usd` used by other preparation modes. The plan adds imported accounted
+costs to that allowance; final provider billing remains external. Expensive token
+allowances reserve more before dispatch, even when the visible answer is short.
+No automatic retries or allowance increases occur.
+
+The frozen schedule retains all old pairs. For every existing scenario, each new
+model receives two seeded opponents from the prior models with complete responses.
+Selection uses availability, not rank or judge outcomes. Old models consequently
+receive unequal additional comparisons. All accepted evidence is refitted jointly;
+new models without an accepted connection have no global rank. New generation
+failures skip affected pairs and remain visible without removing the whole model.
+
+The source must have finished dispatching its scheduled work. New scenarios,
+prompts, judge versions and decoding changes are outside this enrollment mode.
+The 2,048-token cap and economical reasoning configuration are preserved; this
+does not measure every model's maximum reasoning capability. Changing the cohort
+can move existing ranks without any model having improved. Model aliases and
+provider revisions also limit comparisons across collection dates.
+
+Preparation and offline reanalysis verify the saved evidence and source chain.
+Resume checks the frozen inherited and bridge schedule before dispatch. Keep all
+source directories intact. Further model enrollment is supported; adding scenario
+families after enrollment currently requires a separate protocol.
+
 ## Recover a provider and rebuild offline
 
 If a provider remains unavailable, preserve that pass and prepare a **separate**
